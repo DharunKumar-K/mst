@@ -19,11 +19,23 @@ export default function EvidenceUploader({ onFilesReady }) {
   ];
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-      <h4 className="font-semibold text-slate-100 text-sm mb-1">Attach Physical & IoT Evidence</h4>
-      <p className="text-xs text-slate-400 mb-4">Files will be canonicalized and hashed into Merkle leaves</p>
+    <div
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        padding: '20px 24px',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+    >
+      <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '0 0 2px' }}>
+        Attach Physical & IoT Evidence
+      </h4>
+      <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 16px' }}>
+        Files will be canonicalized and hashed into Merkle tree leaves
+      </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
         {uploadSlots.map(slot => {
           const isUploaded = uploadedFiles.some(f => f.type === slot.type);
 
@@ -31,17 +43,24 @@ export default function EvidenceUploader({ onFilesReady }) {
             <div 
               key={slot.type}
               onClick={() => handleSimulateUpload(slot.type)}
-              className={`p-3 rounded-lg border border-dashed cursor-pointer transition-all flex items-center justify-between ${
-                isUploaded 
-                  ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300' 
-                  : 'bg-slate-950/40 border-slate-800 hover:border-slate-700 text-slate-400'
-              }`}
+              style={{
+                padding: '12px 14px',
+                borderRadius: 6,
+                border: `1px dashed ${isUploaded ? 'var(--success)' : 'var(--border)'}`,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: isUploaded ? 'var(--success-light)' : 'var(--bg)',
+                color: isUploaded ? 'var(--success)' : 'var(--text)',
+              }}
             >
-              <div className="flex items-center gap-2.5">
-                {isUploaded ? <FileCheck size={18} className="text-emerald-400" /> : <UploadCloud size={18} />}
-                <span className="text-xs font-medium">{slot.label}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {isUploaded ? <FileCheck size={16} style={{ color: 'var(--success)' }} /> : <UploadCloud size={16} style={{ color: 'var(--text-muted)' }} />}
+                <span style={{ fontSize: 12, fontWeight: 500 }}>{slot.label}</span>
               </div>
-              {isUploaded && <Check size={14} className="text-emerald-400" />}
+              {isUploaded && <Check size={14} style={{ color: 'var(--success)' }} />}
             </div>
           );
         })}

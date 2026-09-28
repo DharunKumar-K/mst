@@ -3,10 +3,10 @@ import { CheckCircle2, Clock, ShieldAlert, Coins } from 'lucide-react';
 
 export default function StatusTimeline({ status, createdAt, blockchainTime }) {
   const steps = [
-    { key: 'CREATED', label: 'Batch Created', desc: 'Material weighed & intake logged' },
-    { key: 'AI_VERIFIED', label: 'AI Verifier', desc: 'Mass-balance & telemetry checked' },
-    { key: 'ATTESTED', label: 'MST Attestation', desc: 'Merkle root committed on-chain' },
-    { key: 'SETTLED', label: 'Escrow Settlement', desc: 'Funds released or frozen' }
+    { key: 'CREATED', label: 'Batch Intake Created', desc: 'Material weighed & certified slip logged' },
+    { key: 'AI_VERIFIED', label: 'Multi-Agent AI Audit', desc: 'Mass-balance & telemetry envelope verified' },
+    { key: 'ATTESTED', label: 'MST Testnet Attestation', desc: 'Merkle root committed on-chain' },
+    { key: 'SETTLED', label: 'Escrow Settlement', desc: 'Recycler payout released or disputed' }
   ];
 
   const getStepState = (index) => {
@@ -16,36 +16,63 @@ export default function StatusTimeline({ status, createdAt, blockchainTime }) {
     return index === 0 ? 'completed' : 'pending';
   };
 
+  const getNodeColor = (state) => {
+    if (state === 'completed') return { dot: 'var(--success)', border: 'var(--success)' };
+    if (state === 'error') return { dot: 'var(--error)', border: 'var(--error)' };
+    if (state === 'disputed') return { dot: 'var(--warning)', border: 'var(--warning)' };
+    return { dot: 'var(--surface)', border: 'var(--border)' };
+  };
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
-      <h4 className="font-semibold text-slate-100 text-sm mb-4">Lifecycle Verification Stages</h4>
+    <div
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        padding: '20px 24px',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+    >
+      <div className="label-caps" style={{ marginBottom: 16 }}>
+        Lifecycle Verification Stages
+      </div>
       
-      <div className="relative border-l-2 border-slate-800 ml-4 pl-6 space-y-6">
+      <div style={{ position: 'relative', borderLeft: '1px solid var(--border)', marginLeft: 10, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
         {steps.map((step, idx) => {
           const state = getStepState(idx);
+          const colors = getNodeColor(state);
 
           return (
-            <div key={step.key} className="relative group">
-              <span className={`absolute -left-[31px] top-0.5 w-4 h-4 rounded-full border-2 transition-all ${
-                state === 'completed'
-                  ? 'bg-emerald-500 border-emerald-400 ring-4 ring-emerald-500/20'
-                  : state === 'error'
-                  ? 'bg-rose-500 border-rose-400 ring-4 ring-rose-500/20'
-                  : state === 'disputed'
-                  ? 'bg-amber-500 border-amber-400 ring-4 ring-amber-500/20'
-                  : 'bg-slate-900 border-slate-700'
-              }`} />
+            <div key={step.key} style={{ position: 'relative' }}>
+              <span
+                style={{
+                  position: 'absolute',
+                  left: -26,
+                  top: 2,
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  background: colors.dot,
+                  border: `2px solid ${colors.border}`,
+                }}
+              />
 
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className={`text-sm font-medium ${
-                    state === 'completed' ? 'text-slate-100' : state === 'error' ? 'text-rose-400' : 'text-slate-400'
-                  }`}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: state === 'completed' ? 'var(--text)' : state === 'error' ? 'var(--error)' : 'var(--text-muted)',
+                    }}
+                  >
                     {step.label}
                   </span>
-                  {state === 'completed' && <CheckCircle2 size={13} className="text-emerald-400" />}
+                  {state === 'completed' && <CheckCircle2 size={13} style={{ color: 'var(--success)' }} />}
                 </div>
-                <span className="text-xs text-slate-400 mt-0.5">{step.desc}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2 }}>
+                  {step.desc}
+                </span>
               </div>
             </div>
           );

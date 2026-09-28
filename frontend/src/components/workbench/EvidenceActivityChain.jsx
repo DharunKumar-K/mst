@@ -6,7 +6,7 @@ const EVIDENCE_STEPS = [
     key: 'weighbridge',
     code: 'LEAF-01',
     title: 'Weighbridge Intake Slip',
-    desc: 'Physical mass intake — certified scale calibration, seal #',
+    desc: 'Physical mass intake — certified scale calibration, seal #WB-0041',
     icon: Scale,
     dataKey: 'weighbridge',
     hashShort: '0x3a91…b42e',
@@ -57,12 +57,12 @@ const TIMESTAMPS = [
   '14:00:00',
 ];
 
-function getStatusMeta(status, key) {
-  if (status === 'VALID') return { label: 'VALID', color: 'var(--copper)', bg: 'var(--copper-trace)', border: 'var(--copper-dim)' };
-  if (status === 'TAMPERED_HASH') return { label: 'TAMPERED', color: 'var(--amber)', bg: 'var(--amber-trace)', border: 'var(--amber-dim)' };
-  if (status === 'MISMATCH') return { label: 'MISMATCH', color: 'var(--rust)', bg: 'var(--rust-trace)', border: 'var(--rust-dim)' };
-  if (status === 'SUSPICIOUS') return { label: 'SUSPICIOUS', color: 'var(--rust)', bg: 'var(--rust-trace)', border: 'var(--rust-dim)' };
-  return { label: 'VALID', color: 'var(--copper)', bg: 'var(--copper-trace)', border: 'var(--copper-dim)' };
+function getStatusMeta(status) {
+  if (status === 'VALID' || !status) return { label: 'VALID', color: 'var(--success)', bg: 'var(--success-light)', border: 'var(--success)' };
+  if (status === 'TAMPERED_HASH') return { label: 'TAMPERED', color: 'var(--error)', bg: 'var(--error-light)', border: 'var(--error)' };
+  if (status === 'MISMATCH') return { label: 'MISMATCH', color: 'var(--error)', bg: 'var(--error-light)', border: 'var(--error)' };
+  if (status === 'SUSPICIOUS') return { label: 'SUSPICIOUS', color: 'var(--warning)', bg: 'var(--warning-light)', border: 'var(--warning)' };
+  return { label: 'VALID', color: 'var(--success)', bg: 'var(--success-light)', border: 'var(--success)' };
 }
 
 export default function EvidenceActivityChain({ evidence, onInspect }) {
@@ -82,129 +82,167 @@ export default function EvidenceActivityChain({ evidence, onInspect }) {
   }).length;
 
   return (
-    <div className="border border-[var(--border-primary)]" style={{ background: 'var(--bg-concrete)' }}>
+    <div
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        overflow: 'hidden',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+    >
       {/* Header */}
       <div
-        className="px-5 py-3.5 border-b border-[var(--border-primary)] flex items-center justify-between"
-        style={{ background: 'var(--bg-void)' }}
+        style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
       >
         <div>
-          <h4 className="font-serif text-base font-semibold" style={{ color: 'var(--paper-aged)' }}>
+          <h4 className="font-serif" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
             Forensic Evidence Chain
           </h4>
-          <span className="font-mono text-[9px] uppercase tracking-widest" style={{ color: 'var(--paper-ghost)' }}>
+          <span className="label-caps-sm" style={{ marginTop: 2, display: 'block' }}>
             Chronological Merkle Leaf Anchors // Provable Attestation
           </span>
         </div>
-        <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold" style={{ color: validCount === 5 ? 'var(--copper)' : 'var(--rust)' }}>
-          {validCount}/5
-          <span className="font-mono text-[9px] uppercase" style={{ color: 'var(--paper-ghost)' }}>leaves verified</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, color: validCount === 5 ? 'var(--success)' : 'var(--warning)' }}>
+          <span>{validCount}/5</span>
+          <span style={{ fontSize: 9, color: 'var(--text-faint)', textTransform: 'uppercase' }}>Leaves Verified</span>
         </div>
       </div>
 
       {/* Timeline list */}
-      <div className="p-5">
-        <div className="relative pl-6">
+      <div style={{ padding: '20px' }}>
+        <div style={{ position: 'relative', paddingLeft: 24 }}>
           {/* Vertical rail */}
           <div
-            className="absolute left-[5px] top-3 bottom-3 w-px"
-            style={{ background: 'var(--border-primary)' }}
+            style={{
+              position: 'absolute',
+              left: 5,
+              top: 12,
+              bottom: 12,
+              width: 1,
+              background: 'var(--border-light)',
+            }}
           />
 
-          <div className="space-y-2.5">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {EVIDENCE_STEPS.map((step, idx) => {
               const Icon = step.icon;
               const data = evidence[step.dataKey];
               const rawStatus = data?.status;
-              const meta = getStatusMeta(rawStatus, step.key);
+              const meta = getStatusMeta(rawStatus);
               const isOk = rawStatus === 'VALID' || !rawStatus;
-
-              const staggerClass = `stagger-${idx + 1}`;
 
               return (
                 <div
                   key={step.key}
-                  className={`relative ${mounted ? `animate-slide-up ${staggerClass}` : 'opacity-0'} group`}
+                  style={{
+                    position: 'relative',
+                    opacity: mounted ? 1 : 0,
+                    transition: 'all 0.3s ease',
+                    transitionDelay: `${idx * 60}ms`,
+                  }}
                 >
                   {/* Timeline node */}
                   <div
-                    className="absolute -left-[21px] top-3.5 w-[9px] h-[9px] border transition-colors"
                     style={{
-                      borderColor: meta.color,
-                      background: 'var(--bg-concrete)',
+                      position: 'absolute',
+                      left: -23,
+                      top: 14,
+                      width: 9,
+                      height: 9,
+                      borderRadius: '50%',
+                      background: meta.color,
+                      boxShadow: isOk ? 'none' : `0 0 0 3px ${meta.bg}`,
                     }}
                   />
 
                   <div
-                    className="flex items-stretch gap-0 border transition-all"
                     style={{
-                      background: isOk ? 'var(--bg-void)' : meta.bg,
-                      borderColor: isOk ? 'var(--border-secondary)' : meta.border,
+                      display: 'flex',
+                      alignItems: 'stretch',
+                      background: isOk ? 'var(--bg)' : meta.bg,
+                      border: `1px solid ${isOk ? 'var(--border-light)' : meta.border}`,
+                      borderRadius: 4,
+                      overflow: 'hidden',
+                      transition: 'all 0.15s ease',
                     }}
                   >
                     {/* Left accent bar */}
                     <div
-                      className="w-[3px] flex-shrink-0"
-                      style={{ background: meta.color, opacity: 0.6 }}
+                      style={{
+                        width: 3,
+                        background: meta.color,
+                        flexShrink: 0,
+                      }}
                     />
 
-                    <div className="flex-1 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      {/* Content */}
-                      <div className="flex items-start gap-3">
+                    <div style={{ flex: 1, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                         <div
-                          className="p-1.5 border mt-0.5 flex-shrink-0"
                           style={{
-                            borderColor: 'var(--border-primary)',
-                            background: 'var(--bg-concrete-2)',
-                            color: meta.color,
+                            width: 28,
+                            height: 28,
+                            borderRadius: 4,
+                            background: isOk ? 'var(--teal-light)' : 'rgba(185,87,79,0.15)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            marginTop: 2,
                           }}
                         >
-                          <Icon size={13} />
+                          <Icon size={14} style={{ color: meta.color }} />
                         </div>
+
                         <div>
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="font-mono text-[9px] uppercase tracking-wider px-1" style={{ color: 'var(--paper-ghost)', background: 'var(--bg-concrete-2)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                            <span className="font-mono" style={{ fontSize: 9, padding: '1px 4px', borderRadius: 2, background: 'var(--surface)', border: '1px solid var(--border-light)', color: 'var(--text-faint)' }}>
                               {step.code}
                             </span>
-                            <span className="font-mono text-xs font-bold" style={{ color: 'var(--paper-aged)' }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
                               {step.title}
                             </span>
-                            <span className="font-mono text-[9px]" style={{ color: 'var(--paper-ghost)' }}>
+                            <span className="font-mono" style={{ fontSize: 10, color: 'var(--text-faint)' }}>
                               {TIMESTAMPS[idx]} IST
                             </span>
                           </div>
-                          <p className="font-mono text-[10px]" style={{ color: 'var(--paper-dim)' }}>
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
                             {step.desc}
                           </p>
-                          <div className="mt-1 font-mono text-[9px]" style={{ color: 'var(--paper-ghost)' }}>
+                          <div className="font-mono" style={{ fontSize: 9, color: 'var(--text-faint)', marginTop: 4 }}>
                             SHA-256: <span style={{ color: meta.color }}>{step.hashShort}</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Controls */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                         <span
-                          className="font-mono text-[9px] font-bold uppercase px-2 py-0.5 border"
-                          style={{ color: meta.color, borderColor: meta.border, background: meta.bg }}
+                          className="font-mono"
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: '2px 7px',
+                            borderRadius: 2,
+                            background: meta.bg,
+                            color: meta.color,
+                            border: `1px solid ${meta.border}50`,
+                          }}
                         >
                           {meta.label}
                         </span>
                         <button
                           onClick={() => onInspect && onInspect({ ...step, data, status: rawStatus || 'VALID', leafHash: step.hashShort })}
-                          className="p-1.5 border transition-all"
-                          style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-concrete-2)', color: 'var(--paper-ghost)' }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--copper)';
-                            e.currentTarget.style.color = 'var(--paper-aged)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--border-primary)';
-                            e.currentTarget.style.color = 'var(--paper-ghost)';
-                          }}
+                          className="btn-ghost"
+                          style={{ padding: '6px' }}
                           title="Open Evidence Dossier"
                         >
-                          <Eye size={12} />
+                          <Eye size={13} />
                         </button>
                       </div>
                     </div>

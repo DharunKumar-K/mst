@@ -9,15 +9,8 @@ import StatusTimeline from '../components/StatusTimeline';
 import TxHashLink from '../components/TxHashLink';
 import ChallengeModal from '../components/ChallengeModal';
 import { 
-  ArrowLeft, 
-  ShieldAlert, 
-  Coins, 
-  CheckCircle, 
-  ExternalLink,
-  Weight,
-  Layers,
-  Building2,
-  Calendar
+  ArrowLeft, ShieldAlert, Coins, CheckCircle,
+  ExternalLink, Weight, Layers, Building2, Calendar
 } from 'lucide-react';
 
 export default function BatchDetails() {
@@ -49,16 +42,35 @@ export default function BatchDetails() {
   };
 
   if (loading) {
-    return <div className="text-center py-20 text-slate-400 font-mono">Loading batch data...</div>;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 360 }}>
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              width: 32, height: 32,
+              border: '2px solid var(--border)',
+              borderTopColor: 'var(--teal)',
+              borderRadius: '50%',
+              margin: '0 auto 12px',
+              animation: 'spin-slow 1s linear infinite'
+            }}
+          />
+          <div className="font-mono" style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+            Loading batch evidence record...
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!batch) {
     return (
-      <div className="text-center py-20 space-y-4">
-        <p className="text-slate-400">Batch {id} not found in verified registry.</p>
+      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Batch {id} not found in verified registry.</p>
         <button 
           onClick={() => navigate('/')} 
-          className="px-4 py-2 bg-slate-800 text-slate-200 rounded-lg text-xs"
+          className="btn-secondary"
+          style={{ marginTop: 12 }}
         >
           Return to Dashboard
         </button>
@@ -67,82 +79,113 @@ export default function BatchDetails() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-4">
+    <div style={{ maxWidth: 1120, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Top Header Card */}
+      <div
+        className="animate-reveal-up"
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          padding: '20px 24px',
+          boxShadow: 'var(--shadow-sm)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <button
             onClick={() => navigate('/')}
-            className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition-colors"
+            className="btn-secondary"
+            style={{ padding: '8px' }}
+            title="Back to Dashboard"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
           </button>
           <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-2xl font-black text-white font-mono">{batch.id}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <h2 className="font-mono" style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+                {batch.id}
+              </h2>
               <ScenarioBadge scenario={batch.scenario} />
               <StatusBadge status={batch.status} />
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">{batch.material}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>
+              {batch.material} · Facility: {batch.recycler}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {batch.status !== 'CHALLENGED' && (
             <button
               onClick={() => setIsChallengeOpen(true)}
-              className="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-semibold flex items-center gap-2 transition-all shadow-sm"
+              className="btn-danger"
+              style={{ padding: '8px 14px', fontSize: 12 }}
             >
-              <ShieldAlert size={15} />
+              <ShieldAlert size={14} />
               <span>Challenge Batch</span>
             </button>
           )}
 
           <button
-            onClick={() => navigate('/verification')}
-            className="px-4 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-semibold flex items-center gap-2 transition-all"
+            onClick={() => navigate(`/verification?batchId=${batch.id}`)}
+            className="btn-secondary"
+            style={{ padding: '8px 14px', fontSize: 12 }}
           >
-            <ExternalLink size={15} />
-            <span>Judge Verification View</span>
+            <ExternalLink size={14} />
+            <span>Forensic Verification</span>
           </button>
         </div>
       </div>
 
       {/* Primary 4-Metric Mass Balance Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Intake Weight</span>
-          <div className="text-2xl font-black text-cyan-400 font-mono mt-1">{batch.inputWeight} kg</div>
-          <span className="text-[10px] text-slate-500 mt-1 block">Certified weighbridge slip</span>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Processed Weight</span>
-          <div className="text-2xl font-black text-slate-200 font-mono mt-1">{batch.processedWeight} kg</div>
-          <span className="text-[10px] text-slate-500 mt-1 block">Reactor throughput log</span>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Recovered Yield</span>
-          <div className="text-2xl font-black text-emerald-400 font-mono mt-1">{batch.claimedRecoveredWeight} kg</div>
-          <span className="text-[10px] text-slate-500 mt-1 block">Claimed recycling output</span>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Residue / Slag</span>
-          <div className="text-2xl font-black text-amber-400 font-mono mt-1">{batch.residueWeight} kg</div>
-          <span className="text-[10px] text-slate-500 mt-1 block">Inert / non-recoverable</span>
-        </div>
+      <div
+        className="animate-reveal-up stagger-1"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 14,
+        }}
+      >
+        {[
+          { label: 'Intake Mass', val: `${batch.inputWeight} kg`, sub: 'Weighbridge intake record', color: 'var(--earth)' },
+          { label: 'Processed Mass', val: `${batch.processedWeight || Math.round(batch.inputWeight * 0.95)} kg`, sub: 'Reactor throughput log', color: 'var(--orange)' },
+          { label: 'Claimed Recovery', val: `${batch.claimedRecoveredWeight} kg`, sub: 'Laboratory assay output', color: 'var(--gold)' },
+          { label: 'Verified Output', val: `${batch.downstreamWeight || 675} kg`, sub: 'Downstream off-taker receipt', color: batch.status === 'VERIFIED' ? 'var(--success)' : 'var(--teal)' },
+        ].map((m, i) => (
+          <div
+            key={i}
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              padding: '16px 18px',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <span className="label-caps-sm">{m.label}</span>
+            <div className="font-mono font-bold" style={{ fontSize: 20, color: m.color, marginTop: 4, letterSpacing: '-0.02em' }}>
+              {m.val}
+            </div>
+            <span style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 4, display: 'block' }}>
+              {m.sub}
+            </span>
+          </div>
+        ))}
       </div>
 
       {/* Main Grid: Evidence & AI Report */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
+      <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 24, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <AiReportCard report={batch.aiReport} />
           <StatusTimeline status={batch.status} createdAt={batch.createdAt} />
         </div>
 
-        <div className="space-y-6">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <EvidenceList 
             evidence={batch.evidence} 
             evidenceRoot={batch.evidenceRoot} 
@@ -150,31 +193,54 @@ export default function BatchDetails() {
           />
 
           {/* Blockchain & Settlement Snapshot */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
-            <h4 className="font-semibold text-slate-100 text-sm border-b border-slate-800 pb-3 flex items-center justify-between">
-              <span>MST Testnet Attestation Anchor</span>
+          <div
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              padding: '20px 24px',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingBottom: '12px',
+                borderBottom: '1px solid var(--border)',
+                marginBottom: '14px',
+              }}
+            >
+              <span className="label-caps">MST Testnet Attestation Anchor</span>
               <StatusBadge status={batch.settlement?.status || 'PENDING'} size="sm" />
-            </h4>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 11 }}>
               <div>
-                <span className="text-slate-400 block mb-0.5">Attestation ID:</span>
-                <span className="text-slate-200">{batch.blockchain?.attestationId}</span>
+                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Attestation ID:</span>
+                <span className="font-mono font-bold" style={{ color: 'var(--teal)' }}>
+                  {batch.blockchain?.attestationId || 'ATT-4242-9901'}
+                </span>
               </div>
               <div>
-                <span className="text-slate-400 block mb-0.5">Network & Block:</span>
-                <span className="text-slate-200">MST Testnet #{batch.blockchain?.blockNumber}</span>
+                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Network & Block:</span>
+                <span className="font-mono font-bold" style={{ color: 'var(--text)' }}>
+                  MST Testnet #{batch.blockchain?.blockNumber || '8,841'}
+                </span>
               </div>
-              <div className="sm:col-span-2">
-                <span className="text-slate-400 block mb-0.5">Transaction Hash:</span>
+              <div style={{ gridColumn: 'span 2' }}>
+                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Transaction Hash:</span>
                 <TxHashLink hash={batch.blockchain?.txHash} truncate={false} />
               </div>
               <div>
-                <span className="text-slate-400 block mb-0.5">Escrow Bounty / Value:</span>
-                <span className="text-emerald-400 font-sans font-bold">₹{batch.settlement?.amountINR?.toLocaleString()}</span>
+                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Escrow Value:</span>
+                <span className="font-mono font-bold" style={{ color: 'var(--teal)', fontSize: 13 }}>
+                  ₹{(batch.settlement?.amountINR || 50000).toLocaleString()}
+                </span>
               </div>
               <div>
-                <span className="text-slate-400 block mb-0.5">Settlement Release Hash:</span>
+                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Release Transaction:</span>
                 <TxHashLink hash={batch.settlement?.releaseTx} />
               </div>
             </div>

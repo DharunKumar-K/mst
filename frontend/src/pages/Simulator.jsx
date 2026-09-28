@@ -1,317 +1,601 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { 
-  Play, 
-  Settings, 
-  Sparkles, 
-  Cpu, 
-  Flame, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Layers, 
-  RefreshCcw,
-  Zap
+import {
+  Play, RefreshCcw, CheckCircle2, AlertTriangle,
+  Flame, Settings, Zap, ArrowDown, Activity
 } from 'lucide-react';
 
+/* ─────────────────────────────────────────────
+   SCENARIO CONFIGURATIONS
+─────────────────────────────────────────────── */
+const SCENARIOS = {
+  NORMAL: {
+    label: 'Normal',
+    description: 'Physically conserved mass-balance, verified sensor telemetry, matching downstream weighment.',
+    icon: CheckCircle2,
+    accent: 'var(--success)',
+    bg: 'var(--success-light)',
+    tag: 'CONSISTENT',
+    values: { input: 1000, processed: 950, recovered: 680, downstream: 675, runtime: 8.5, energy: 1240 },
+    flowColors: ['var(--earth)', 'var(--orange)', 'var(--gold)', 'var(--success)'],
+    verdict: { label: 'RECONCILIATION COMPLETE', pct: '96.4%', status: 'CONSISTENT' },
+    checks: [
+      { label: 'Mass Balance',             status: 'pass' },
+      { label: 'Capacity Validation',      status: 'pass' },
+      { label: 'Energy Usage',             status: 'pass' },
+      { label: 'Downstream Traceability',  status: 'pass' },
+      { label: 'Hash Integrity',           status: 'pass' },
+    ],
+  },
+  INCONSISTENT: {
+    label: 'Inconsistent',
+    description: 'Exaggerated recovery yield — 900 kg claimed vs 680 kg downstream. Triggers mass-balance alert.',
+    icon: AlertTriangle,
+    accent: 'var(--warning)',
+    bg: 'var(--warning-light)',
+    tag: 'FLAGGED',
+    values: { input: 1000, processed: 920, recovered: 900, downstream: 680, runtime: 4.2, energy: 480 },
+    flowColors: ['var(--earth)', 'var(--orange)', 'var(--error)', 'var(--error)'],
+    verdict: { label: 'MASS BALANCE MISMATCH', pct: '62.1%', status: 'INCONSISTENT' },
+    checks: [
+      { label: 'Mass Balance',             status: 'fail' },
+      { label: 'Capacity Validation',      status: 'warn' },
+      { label: 'Energy Usage',             status: 'warn' },
+      { label: 'Downstream Traceability',  status: 'fail' },
+      { label: 'Hash Integrity',           status: 'pass' },
+    ],
+  },
+  TAMPERED: {
+    label: 'Tampered',
+    description: 'Modified evidence signatures, offline telemetry spoofing, impossible thermodynamic throughput.',
+    icon: Flame,
+    accent: 'var(--error)',
+    bg: 'var(--error-light)',
+    tag: 'TAMPERED',
+    values: { input: 1500, processed: 1400, recovered: 1350, downstream: 820, runtime: 2.1, energy: 120 },
+    flowColors: ['var(--earth)', 'var(--orange)', 'var(--error)', 'var(--error)'],
+    verdict: { label: 'EVIDENCE INTEGRITY FAILURE', pct: '0%', status: 'TAMPERED' },
+    checks: [
+      { label: 'Mass Balance',             status: 'fail' },
+      { label: 'Capacity Validation',      status: 'fail' },
+      { label: 'Energy Usage',             status: 'fail' },
+      { label: 'Downstream Traceability',  status: 'fail' },
+      { label: 'Hash Integrity',           status: 'fail' },
+    ],
+  },
+};
+
+/* ─────────────────────────────────────────────
+   CHECK ICON
+─────────────────────────────────────────────── */
+function CheckIcon({ status, animate, delay }) {
+  const config = {
+    pass: { color: 'var(--success)', symbol: '✓', bg: 'var(--success-light)' },
+    warn: { color: 'var(--warning)', symbol: '⚠', bg: 'var(--warning-light)' },
+    fail: { color: 'var(--error)',   symbol: '✕', bg: 'var(--error-light)' },
+  }[status] || { color: 'var(--text-muted)', symbol: '•', bg: 'var(--bg)' };
+
+  return (
+    <div
+      className={animate ? 'animate-scale-in' : ''}
+      style={{
+        animationDelay: `${delay}ms`,
+        width: 26, height: 26, borderRadius: 5,
+        background: config.bg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 13, color: config.color, fontWeight: 800,
+        transition: 'all 0.3s ease',
+      }}
+    >
+      {config.symbol}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   MATERIAL FLOW VISUALIZATION
+─────────────────────────────────────────────── */
+function ScenarioFlowViz({ scenario, values, running }) {
+  const cfg = SCENARIOS[scenario];
+  const stages = [
+    { label: 'INPUT',      value: values.input,      color: cfg.flowColors[0] },
+    { label: 'PROCESSED',  value: values.processed,  color: cfg.flowColors[1] },
+    { label: 'RECOVERED',  value: values.recovered,  color: cfg.flowColors[2] },
+    { label: 'DOWNSTREAM', value: values.downstream, color: cfg.flowColors[3] },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, alignItems: 'center', width: '100%' }}>
+      {stages.map((stage, i) => {
+        const isLast = i === stages.length - 1;
+        const mismatch = scenario !== 'NORMAL' && i >= 2;
+        return (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+            <div
+              className={mismatch ? 'animate-shake' : ''}
+              style={{
+                width: '100%', padding: '16px 20px',
+                background: 'var(--surface)',
+                border: `2px solid ${mismatch ? 'var(--error)' : 'var(--border-light)'}`,
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                transition: 'all 0.4s ease',
+                boxShadow: mismatch
+                  ? '0 4px 16px rgba(185,87,79,0.2)'
+                  : 'var(--shadow-sm)',
+              }}
+            >
+              <div>
+                <div
+                  className="font-mono"
+                  style={{ fontSize: 9, color: 'var(--text-faint)', letterSpacing: '0.12em', marginBottom: 3 }}
+                >
+                  {stage.label}
+                </div>
+                <div
+                  className="font-mono"
+                  style={{
+                    fontSize: 26, fontWeight: 700, letterSpacing: '-0.04em',
+                    color: mismatch ? 'var(--error)' : 'var(--text)', lineHeight: 1,
+                    transition: 'color 0.4s ease',
+                  }}
+                >
+                  {running ? '···' : stage.value.toLocaleString()}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>KG</div>
+              </div>
+
+              <div style={{ textAlign: 'right' }}>
+                <div
+                  style={{
+                    width: 10, height: 10, borderRadius: '50%',
+                    background: mismatch ? 'var(--error)' : stage.color,
+                    marginLeft: 'auto', marginBottom: 6,
+                    boxShadow: `0 0 10px ${mismatch ? 'var(--error)' : stage.color}`,
+                  }}
+                />
+                <div
+                  className="font-mono"
+                  style={{ fontSize: 11, fontWeight: 700, color: mismatch ? 'var(--error)' : stage.color }}
+                >
+                  {Math.round((stage.value / values.input) * 100)}%
+                </div>
+              </div>
+            </div>
+
+            {!isLast && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 26, position: 'relative' }}>
+                <div
+                  style={{
+                    width: 2, height: '100%',
+                    background: 'var(--border)',
+                  }}
+                />
+                <ArrowDown
+                  size={12}
+                  style={{
+                    position: 'absolute', bottom: -2,
+                    color: stages[i + 1].color,
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   RECONCILIATION PANEL
+─────────────────────────────────────────────── */
+function ReconciliationPanel({ scenario, running }) {
+  const cfg = SCENARIOS[scenario];
+  const [revealed, setRevealed] = useState(false);
+
+  React.useEffect(() => {
+    setRevealed(false);
+    const t = setTimeout(() => setRevealed(true), 400);
+    return () => clearTimeout(t);
+  }, [scenario]);
+
+  const isConsistent = cfg.verdict.status === 'CONSISTENT';
+
+  return (
+    <div
+      style={{
+        background: 'var(--surface)', border: '1px solid var(--border-light)',
+        borderRadius: 8, padding: '24px',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+    >
+      <div style={{ marginBottom: 20 }}>
+        <div className="label-caps" style={{ marginBottom: 6 }}>AI Reconciliation Engine</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          Autonomous multi-agent forensic verification
+        </div>
+      </div>
+
+      {/* Check items */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {cfg.checks.map((check, i) => (
+          <div
+            key={check.label}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 12px', background: 'var(--bg)', borderRadius: 4,
+              border: '1px solid var(--border-light)',
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+              {check.label}
+            </span>
+            {running ? (
+              <div
+                style={{
+                  width: 26, height: 26, borderRadius: 5, background: 'var(--surface)',
+                }}
+                className="shimmer"
+              />
+            ) : (
+              <CheckIcon status={check.status} animate={revealed} delay={i * 80} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Verdict */}
+      {!running && (
+        <div
+          className="animate-reveal-up stagger-6"
+          style={{
+            marginTop: 20, padding: '18px',
+            background: isConsistent ? 'var(--success-light)' : 'var(--error-light)',
+            borderRadius: 6,
+            textAlign: 'center',
+            border: `1px solid ${isConsistent ? 'var(--success)' : 'var(--error)'}`,
+          }}
+        >
+          <div
+            className="font-mono"
+            style={{
+              fontSize: 32, fontWeight: 700,
+              color: isConsistent ? 'var(--success)' : 'var(--error)',
+              letterSpacing: '-0.04em', lineHeight: 1,
+              marginBottom: 6,
+            }}
+          >
+            {cfg.verdict.pct}
+          </div>
+          <div
+            className="font-mono"
+            style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+              color: isConsistent ? 'var(--success)' : 'var(--error)',
+              marginBottom: 4,
+            }}
+          >
+            {cfg.verdict.status}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            {cfg.verdict.label}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   PARAMETER FIELD
+─────────────────────────────────────────────── */
+function ParamField({ label, value, onChange, type = 'number', unit, step }) {
+  return (
+    <div>
+      <label className="label-caps-sm" style={{ display: 'block', marginBottom: 5 }}>
+        {label}
+      </label>
+      <div style={{ position: 'relative' }}>
+        <input
+          type={type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          step={step}
+          style={{
+            width: '100%',
+            padding: '9px 12px',
+            paddingRight: unit ? '42px' : '12px',
+            fontSize: 13,
+            fontFamily: 'JetBrains Mono, monospace',
+            fontWeight: 600,
+            color: 'var(--text)',
+            background: 'var(--bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 4,
+            outline: 'none',
+          }}
+        />
+        {unit && (
+          <span
+            className="font-mono"
+            style={{
+              position: 'absolute', right: 10, top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: 10, color: 'var(--text-faint)', fontWeight: 700,
+            }}
+          >
+            {unit}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   MAIN SIMULATOR PAGE
+─────────────────────────────────────────────── */
 export default function Simulator() {
   const navigate = useNavigate();
   const [running, setRunning] = useState(false);
-  const [activeScenario, setActiveScenario] = useState('NORMAL'); // NORMAL, INCONSISTENT, TAMPERED
+  const [activeScenario, setActiveScenario] = useState('NORMAL');
 
-  // Form parameters
+  // Editable values (synced with scenario presets)
+  const [values, setValues] = useState(SCENARIOS.NORMAL.values);
   const [material, setMaterial] = useState('Lithium-Ion Batteries (NMC 811)');
-  const [inputWeight, setInputWeight] = useState(1000);
-  const [processedWeight, setProcessedWeight] = useState(950);
-  const [claimedRecoveredWeight, setClaimedRecoveredWeight] = useState(680);
-  const [downstreamWeight, setDownstreamWeight] = useState(675);
-  const [runtimeHours, setRuntimeHours] = useState(8.5);
-  const [energyKwh, setEnergyKwh] = useState(1240);
 
-  // Quick preset scenario picker
   const handleScenarioChange = (scenario) => {
     setActiveScenario(scenario);
-    if (scenario === 'NORMAL') {
-      setInputWeight(1000);
-      setProcessedWeight(950);
-      setClaimedRecoveredWeight(680);
-      setDownstreamWeight(675);
-      setRuntimeHours(8.5);
-      setEnergyKwh(1240);
-    } else if (scenario === 'INCONSISTENT') {
-      setInputWeight(1000);
-      setProcessedWeight(920);
-      setClaimedRecoveredWeight(900); // 90% impossible recovery
-      setDownstreamWeight(680); // Receiver got only 680kg
-      setRuntimeHours(4.2);
-      setEnergyKwh(480);
-    } else if (scenario === 'TAMPERED') {
-      setInputWeight(1500);
-      setProcessedWeight(1400);
-      setClaimedRecoveredWeight(1350);
-      setDownstreamWeight(820);
-      setRuntimeHours(2.1); // Impossible speed
-      setEnergyKwh(120);
-    }
+    setValues(SCENARIOS[scenario].values);
+  };
+
+  const updateValue = (key) => (val) => {
+    setValues(prev => ({ ...prev, [key]: Number(val) }));
   };
 
   const handleGenerate = async () => {
     setRunning(true);
     try {
-      const simulated = await api.runSimulation({
+      const simulated = await api.createBatch({
         material,
-        inputWeight: Number(inputWeight),
-        processedWeight: Number(processedWeight),
-        claimedRecoveredWeight: Number(claimedRecoveredWeight),
-        downstreamWeight: Number(downstreamWeight),
-        runtimeHours: Number(runtimeHours),
-        energyKwh: Number(energyKwh),
+        inputWeight: values.input,
+        processedWeight: values.processed,
+        claimedRecoveredWeight: values.recovered,
+        downstreamWeight: values.downstream,
+        runtimeHours: values.runtime,
+        energyKwh: values.energy,
         scenario: activeScenario,
-        producer: "Demo Producer (Simulated)",
-        recycler: "Demo Recycler Facility",
-        buyer: "Global Cathode Off-taker",
-        amountINR: 65000
+        producer: 'VoltForge Dynamics (Simulated)',
+        recycler:  'EcoLoop Hydrometallurgy',
+        buyer:     'Global Cathode Off-taker',
+        amountINR: 65000,
       });
-
-      // Navigate to verification screen for judges
-      setTimeout(() => {
-        navigate(`/verification?batchId=${simulated.id}`);
-      }, 600);
+      setTimeout(() => navigate(`/verification?batchId=${simulated?.id || ''}`), 500);
     } catch (err) {
-      console.error("Simulation failed", err);
+      console.error('Simulation failed', err);
     } finally {
       setRunning(false);
     }
   };
 
+  const activeCfg = SCENARIOS[activeScenario];
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1200, margin: '0 auto' }}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/60 border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-              <Cpu size={24} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-black text-white">Judge Simulator Control Panel</h2>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                  Interactive Demo Mode
+      <div className="animate-reveal-up">
+        <div className="label-caps" style={{ marginBottom: 8 }}>Simulation Control Panel</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h1 className="font-serif" style={{ fontSize: 32, color: 'var(--text)', margin: 0, lineHeight: 1.1 }}>
+              Material Batch<br />Simulator
+            </h1>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5, maxWidth: 520 }}>
+              Generate realistic circular recycling scenarios. Trigger autonomous multi-agent forensic verification and MST Testnet attestation.
+            </p>
+          </div>
+          <div
+            style={{
+              padding: '8px 14px',
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              borderRadius: 4, fontSize: 10, fontWeight: 700,
+              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              color: 'var(--text-muted)', letterSpacing: '0.06em',
+            }}
+          >
+            ACTIVE SCENARIO: <span style={{ color: activeCfg.accent }}>{activeScenario}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Scenario selector */}
+      <div
+        className="animate-reveal-up stagger-1"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}
+      >
+        {Object.entries(SCENARIOS).map(([key, cfg]) => {
+          const Icon = cfg.icon;
+          const isActive = activeScenario === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => handleScenarioChange(key)}
+              style={{
+                padding: '20px',
+                background: isActive ? 'var(--surface-warm)' : 'var(--surface)',
+                border: `2px solid ${isActive ? cfg.accent : 'var(--border-light)'}`,
+                borderRadius: 8,
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.2s ease',
+                boxShadow: isActive ? 'var(--shadow)' : 'var(--shadow-sm)',
+                transform: isActive ? 'translateY(-2px)' : 'translateY(0)',
+              }}
+              onMouseEnter={e => {
+                if (!isActive) {
+                  e.currentTarget.style.borderColor = 'var(--border)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (!isActive) {
+                  e.currentTarget.style.borderColor = 'var(--border-light)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div
+                  style={{
+                    width: 34, height: 34, borderRadius: 6,
+                    background: cfg.bg,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <Icon size={16} style={{ color: cfg.accent }} />
+                </div>
+                <span
+                  style={{
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                    padding: '3px 8px', borderRadius: 2,
+                    background: cfg.bg,
+                    color: cfg.accent,
+                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  }}
+                >
+                  {cfg.tag}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-1 max-w-xl">
-                Generate real-time simulated industrial waste runs, trigger fraud heuristics, and benchmark CirqProof AI and MST attestation engine.
+
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+                {cfg.label}
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                {cfg.description}
               </p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 font-medium">Scenario Mode:</span>
-            <span className="text-xs font-mono font-bold text-cyan-400">{activeScenario}</span>
-          </div>
-        </div>
+              {/* Values preview */}
+              <div
+                className="font-mono"
+                style={{
+                  marginTop: 12, fontSize: 10, color: isActive ? cfg.accent : 'var(--text-faint)',
+                  background: 'var(--bg)',
+                  padding: '7px 10px', borderRadius: 4,
+                  border: `1px solid ${isActive ? 'var(--border)' : 'var(--border-light)'}`,
+                }}
+              >
+                {cfg.values.input}kg → {cfg.values.recovered}kg / ds:{cfg.values.downstream}kg
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Scenario Selection Tabs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* NORMAL SCENARIO */}
-        <div 
-          onClick={() => handleScenarioChange('NORMAL')}
-          className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-            activeScenario === 'NORMAL'
-              ? 'bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-200'
-              : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-400'
-          }`}
+      {/* Main content: flow viz + parameters + reconciliation */}
+      <div
+        className="animate-reveal-up stagger-2"
+        style={{ display: 'grid', gridTemplateColumns: '260px 1fr 280px', gap: 20, alignItems: 'flex-start' }}
+      >
+        {/* Flow visualization */}
+        <div
+          style={{
+            background: 'var(--surface)', border: '1px solid var(--border-light)',
+            borderRadius: 8, padding: '20px',
+            boxShadow: 'var(--shadow-sm)',
+          }}
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={18} className={activeScenario === 'NORMAL' ? 'text-emerald-400' : 'text-slate-500'} />
-              <span className="font-bold text-sm text-slate-100">Scenario 1: Normal</span>
-            </div>
-            <span className="text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">
-              Consistent
-            </span>
-          </div>
-          <p className="text-xs text-slate-300 leading-relaxed mb-3">
-            Physically conserved mass-balance, verified sensor telemetry, matching downstream receiver weighment.
-          </p>
-          <div className="text-[11px] font-mono text-emerald-400 bg-slate-950/60 p-2 rounded border border-slate-800">
-            Intake: 1000kg • Recovery: 680kg • Downstream: 675kg
-          </div>
+          <div className="label-caps" style={{ marginBottom: 16 }}>Material Flow</div>
+          <ScenarioFlowViz
+            scenario={activeScenario}
+            values={values}
+            running={running}
+          />
         </div>
 
-        {/* INCONSISTENT SCENARIO */}
-        <div 
-          onClick={() => handleScenarioChange('INCONSISTENT')}
-          className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-            activeScenario === 'INCONSISTENT'
-              ? 'bg-amber-950/40 border-amber-500 ring-2 ring-amber-500/20 text-amber-200'
-              : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-400'
-          }`}
+        {/* Parameters */}
+        <div
+          style={{
+            background: 'var(--surface)', border: '1px solid var(--border-light)',
+            borderRadius: 8, padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
+          }}
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={18} className={activeScenario === 'INCONSISTENT' ? 'text-amber-400' : 'text-slate-500'} />
-              <span className="font-bold text-sm text-slate-100">Scenario 2: Inconsistent</span>
-            </div>
-            <span className="text-[10px] font-mono uppercase bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded">
-              Flagged
-            </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div className="label-caps">Simulation Parameters</div>
+            <Settings size={14} style={{ color: 'var(--text-faint)' }} />
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed mb-3">
-            Exaggerated recovery yield (900kg claimed vs 680kg downstream). Triggers mass-balance alert and escrow freeze.
-          </p>
-          <div className="text-[11px] font-mono text-amber-400 bg-slate-950/60 p-2 rounded border border-slate-800">
-            Intake: 1000kg • Claimed: 900kg • Downstream: 680kg
-          </div>
-        </div>
 
-        {/* TAMPERED SCENARIO */}
-        <div 
-          onClick={() => handleScenarioChange('TAMPERED')}
-          className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-            activeScenario === 'TAMPERED'
-              ? 'bg-rose-950/40 border-rose-500 ring-2 ring-rose-500/20 text-rose-200'
-              : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-400'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Flame size={18} className={activeScenario === 'TAMPERED' ? 'text-rose-400' : 'text-slate-500'} />
-              <span className="font-bold text-sm text-slate-100">Scenario 3: Tampered</span>
-            </div>
-            <span className="text-[10px] font-mono uppercase bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded">
-              Tampered
-            </span>
-          </div>
-          <p className="text-xs text-slate-300 leading-relaxed mb-3">
-            Modified evidence signatures, offline telemetry spoofing, and impossible thermodynamic throughput rate.
-          </p>
-          <div className="text-[11px] font-mono text-rose-400 bg-slate-950/60 p-2 rounded border border-slate-800">
-            Intake: 1500kg • Impossible 2.1h Cycle • Missing 530kg
-          </div>
-        </div>
-      </div>
-
-      {/* Simulator Tuning Parameters */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
-        <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center justify-between">
-          <span>Simulation Parameters Control</span>
-          <span className="text-xs text-slate-400 normal-case">Tweak physical plant variables</span>
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+          <div style={{ marginBottom: 16 }}>
+            <label className="label-caps-sm" style={{ display: 'block', marginBottom: 6 }}>
               Material Feedstock
             </label>
             <input
               type="text"
               value={material}
-              onChange={(e) => setMaterial(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyan-500"
+              onChange={e => setMaterial(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px', fontSize: 13,
+                background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4,
+                color: 'var(--text)', outline: 'none',
+              }}
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Input Weight (kg)
-            </label>
-            <input
-              type="number"
-              value={inputWeight}
-              onChange={(e) => setInputWeight(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500"
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
+            <ParamField label="Input Weight"        value={values.input}      onChange={updateValue('input')}      unit="KG" />
+            <ParamField label="Processed Weight"    value={values.processed}  onChange={updateValue('processed')}  unit="KG" />
+            <ParamField label="Claimed Recovery"    value={values.recovered}  onChange={updateValue('recovered')}  unit="KG" />
+            <ParamField label="Downstream Off-take" value={values.downstream} onChange={updateValue('downstream')} unit="KG" />
+            <ParamField label="Runtime"             value={values.runtime}    onChange={updateValue('runtime')}    unit="HR" step={0.1} />
+            <ParamField label="Energy Consumed"     value={values.energy}     onChange={updateValue('energy')}     unit="kWh" />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Processed Weight (kg)
-            </label>
-            <input
-              type="number"
-              value={processedWeight}
-              onChange={(e) => setProcessedWeight(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Claimed Recovery (kg)
-            </label>
-            <input
-              type="number"
-              value={claimedRecoveredWeight}
-              onChange={(e) => setClaimedRecoveredWeight(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-emerald-400 font-bold focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Downstream Off-take (kg)
-            </label>
-            <input
-              type="number"
-              value={downstreamWeight}
-              onChange={(e) => setDownstreamWeight(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Process Runtime (Hours)
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              value={runtimeHours}
-              onChange={(e) => setRuntimeHours(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Energy Consumed (kWh)
-            </label>
-            <input
-              type="number"
-              value={energyKwh}
-              onChange={(e) => setEnergyKwh(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-              Active Scenario Tag
-            </label>
-            <div className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-cyan-400 uppercase">
-              {activeScenario}
+          {/* Efficiency indicators */}
+          {['INCONSISTENT', 'TAMPERED'].includes(activeScenario) && (
+            <div
+              style={{
+                padding: '12px 14px', background: 'var(--error-light)',
+                border: '1px solid var(--error)', borderRadius: 4, marginBottom: 16,
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--error)', marginBottom: 4 }}>
+                {activeScenario === 'TAMPERED' ? '⚠ EVIDENCE INTEGRITY FAILURE DETECTED' : '⚠ MASS BALANCE ANOMALY DETECTED'}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text)', lineHeight: 1.5 }}>
+                {activeScenario === 'TAMPERED'
+                  ? 'Hash signatures modified. Runtime physically impossible for claimed throughput.'
+                  : `Recovery claim (${values.recovered}kg) exceeds downstream receipt (${values.downstream}kg) by ${values.recovered - values.downstream}kg.`
+                }
+              </div>
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Generate Action Button */}
-        <div className="pt-4 flex items-center justify-between border-t border-slate-800">
-          <div className="text-xs text-slate-400">
-            Will execute AI heuristic verifier and anchor Merkle root onto MST Testnet.
-          </div>
-
+          {/* Generate button */}
           <button
             onClick={handleGenerate}
             disabled={running}
-            className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center gap-2.5 transition-all shadow-xl shadow-cyan-500/20 disabled:opacity-50"
+            className="btn-primary"
+            style={{
+              width: '100%', padding: '14px',
+              justifyContent: 'center',
+              fontSize: 13,
+            }}
           >
-            {running ? <RefreshCcw size={18} className="animate-spin" /> : <Zap size={18} />}
-            <span>{running ? 'Simulating Batch...' : 'GENERATE BATCH'}</span>
+            {running
+              ? <><RefreshCcw size={15} style={{ animation: 'spin-slow 1s linear infinite' }} /> SIMULATING BATCH...</>
+              : <><Zap size={15} /> GENERATE BATCH</>
+            }
           </button>
         </div>
+
+        {/* Reconciliation */}
+        <ReconciliationPanel scenario={activeScenario} running={running} />
       </div>
     </div>
   );

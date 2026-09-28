@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import EvidenceUploader from '../components/EvidenceUploader';
-import { PackagePlus, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { PackagePlus, ArrowRight, ShieldCheck, Sparkles, Layers } from 'lucide-react';
 
 export default function CreateBatch() {
   const navigate = useNavigate();
@@ -60,35 +60,74 @@ export default function CreateBatch() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-            <PackagePlus size={22} />
+    <div style={{ maxWidth: 880, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Header */}
+      <div
+        className="animate-reveal-up"
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          padding: '24px 28px',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 36, height: 36, borderRadius: 6,
+              background: 'var(--teal-light)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <PackagePlus size={18} style={{ color: 'var(--teal)' }} />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Create Intake Batch</h2>
-            <p className="text-xs text-slate-400">Register physical circular feedstocks, plant metrics, and escrow terms</p>
+            <h2 className="font-serif" style={{ fontSize: 22, color: 'var(--text)', margin: '0 0 4px' }}>
+              Create Intake Batch
+            </h2>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
+              Register physical circular feedstocks, plant telemetry parameters, and escrow terms
+            </p>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
-          <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-3">
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Section 1 */}
+        <div
+          className="animate-reveal-up stagger-1"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <div className="label-caps" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 10, marginBottom: 16 }}>
             1. Feedstock & Participant Metadata
-          </h3>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="label-caps-sm" style={{ display: 'block', marginBottom: 6 }}>
                 Material Classification
               </label>
               <select
                 name="material"
                 value={formData.material}
                 onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 4,
+                  fontSize: 12,
+                  color: 'var(--text)',
+                  outline: 'none',
+                }}
               >
                 {materials.map((m, i) => (
                   <option key={i} value={m}>{m}</option>
@@ -97,23 +136,34 @@ export default function CreateBatch() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="label-caps-sm" style={{ display: 'block', marginBottom: 6 }}>
                 Escrow Settlement Value (INR)
               </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-slate-400 text-xs font-medium">₹</span>
+              <div style={{ position: 'relative' }}>
+                <span className="font-mono" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 13 }}>₹</span>
                 <input
                   type="number"
                   name="amountINR"
                   value={formData.amountINR}
                   onChange={handleChange}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px 10px 28px',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 4,
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontSize: 13,
+                    color: 'var(--teal)',
+                    fontWeight: 700,
+                    outline: 'none',
+                  }}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="label-caps-sm" style={{ display: 'block', marginBottom: 6 }}>
                 Producer (Waste Generator)
               </label>
               <input
@@ -121,12 +171,21 @@ export default function CreateBatch() {
                 name="producer"
                 value={formData.producer}
                 onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 4,
+                  fontSize: 12,
+                  color: 'var(--text)',
+                  outline: 'none',
+                }}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="label-caps-sm" style={{ display: 'block', marginBottom: 6 }}>
                 Recycler Facility
               </label>
               <input
@@ -134,20 +193,39 @@ export default function CreateBatch() {
                 name="recycler"
                 value={formData.recycler}
                 onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 4,
+                  fontSize: 12,
+                  color: 'var(--text)',
+                  outline: 'none',
+                }}
               />
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
-          <h3 className="text-sm font-semibold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-3">
+        {/* Section 2 */}
+        <div
+          className="animate-reveal-up stagger-2"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <div className="label-caps" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 10, marginBottom: 16 }}>
             2. Mass Balance & Recovery Metrics (kg)
-          </h3>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="label-caps-sm" style={{ display: 'block', marginBottom: 6 }}>
                 Input Weight (kg)
               </label>
               <input
@@ -156,12 +234,23 @@ export default function CreateBatch() {
                 value={formData.inputWeight}
                 onChange={handleChange}
                 required
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-emerald-500"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 4,
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: 13,
+                  color: 'var(--earth)',
+                  fontWeight: 700,
+                  outline: 'none',
+                }}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="label-caps-sm" style={{ display: 'block', marginBottom: 6 }}>
                 Processed Weight (kg)
               </label>
               <input
@@ -170,12 +259,23 @@ export default function CreateBatch() {
                 value={formData.processedWeight}
                 onChange={handleChange}
                 required
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-emerald-500"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 4,
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: 13,
+                  color: 'var(--orange)',
+                  fontWeight: 700,
+                  outline: 'none',
+                }}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="label-caps-sm" style={{ display: 'block', marginBottom: 6 }}>
                 Claimed Recovered (kg)
               </label>
               <input
@@ -184,12 +284,23 @@ export default function CreateBatch() {
                 value={formData.claimedRecoveredWeight}
                 onChange={handleChange}
                 required
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-xs font-mono text-emerald-400 font-bold focus:outline-none focus:border-emerald-500"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 4,
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: 13,
+                  color: 'var(--gold)',
+                  fontWeight: 700,
+                  outline: 'none',
+                }}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="label-caps-sm" style={{ display: 'block', marginBottom: 6 }}>
                 Downstream Weight (kg)
               </label>
               <input
@@ -198,7 +309,18 @@ export default function CreateBatch() {
                 value={formData.downstreamWeight}
                 onChange={handleChange}
                 required
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-emerald-500"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 4,
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: 13,
+                  color: 'var(--text)',
+                  fontWeight: 700,
+                  outline: 'none',
+                }}
               />
             </div>
           </div>
@@ -207,20 +329,20 @@ export default function CreateBatch() {
         {/* Evidence attachment */}
         <EvidenceUploader />
 
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, paddingTop: 8 }}>
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="px-5 py-2.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+            className="btn-secondary"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+            className="btn-primary"
           >
-            <Sparkles size={16} />
+            <Sparkles size={14} />
             <span>{submitting ? 'Anchoring Evidence Root...' : 'Create Batch'}</span>
           </button>
         </div>

@@ -1,23 +1,47 @@
 import React from 'react';
 
+const scenarioConfig = {
+  NORMAL: {
+    color: 'var(--teal)',
+    bg: 'var(--teal-light)',
+    border: 'var(--teal)',
+    icon: '✓',
+  },
+  INCONSISTENT: {
+    color: 'var(--warning)',
+    bg: 'var(--warning-light)',
+    border: 'var(--warning)',
+    icon: '⚠',
+  },
+  TAMPERED: {
+    color: 'var(--error)',
+    bg: 'var(--error-light)',
+    border: 'var(--error)',
+    icon: '✕',
+  },
+};
+
 export default function ScenarioBadge({ scenario }) {
   const sc = (scenario || 'NORMAL').toUpperCase();
-
-  const styles = {
-    NORMAL: 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40 ring-1 ring-emerald-500/20',
-    INCONSISTENT: 'bg-amber-950/60 text-amber-300 border-amber-500/40 ring-1 ring-amber-500/20',
-    TAMPERED: 'bg-rose-950/60 text-rose-300 border-rose-500/40 ring-1 ring-rose-500/20',
-  };
-
-  const icons = {
-    NORMAL: '✓',
-    INCONSISTENT: '⚠',
-    TAMPERED: '⚡',
-  };
+  const cfg = scenarioConfig[sc] || scenarioConfig.NORMAL;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium border ${styles[sc] || styles.NORMAL}`}>
-      <span>{icons[sc] || '•'}</span>
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '3px 8px',
+        borderRadius: 3,
+        fontSize: 10,
+        fontFamily: 'JetBrains Mono, monospace',
+        fontWeight: 700,
+        border: `1px solid ${cfg.border}60`,
+        background: cfg.bg,
+        color: cfg.color,
+      }}
+    >
+      <span>{cfg.icon}</span>
       <span>{sc}</span>
     </span>
   );

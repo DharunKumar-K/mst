@@ -7,8 +7,8 @@ export default function TxHashLink({ hash, label = 'Transaction', truncate = tru
 
   if (!hash) {
     return (
-      <span className="font-mono text-[10px]" style={{ color: 'var(--paper-ghost)' }}>
-        Not emitted
+      <span className="font-mono" style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+        —
       </span>
     );
   }
@@ -26,29 +26,24 @@ export default function TxHashLink({ hash, label = 'Transaction', truncate = tru
   };
 
   return (
-    <div className="inline-flex items-center gap-1.5 font-mono text-[10px]">
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>
       <a
         href={`${base}/tx/${hash}`}
         target="_blank"
         rel="noopener noreferrer"
         title={hash}
-        style={{ color: 'var(--copper)' }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--copper-bright)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--copper)'; }}
-        className="inline-flex items-center gap-1 transition-colors"
+        style={{ color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
       >
         <span>{displayHash}</span>
-        <ExternalLink size={10} style={{ opacity: 0.6 }} />
+        <ExternalLink size={10} style={{ opacity: 0.7 }} />
       </a>
       <button
         onClick={handleCopy}
         title="Copy Hash"
-        style={{ color: 'var(--paper-ghost)' }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--paper-dim)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--paper-ghost)'; }}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-faint)', display: 'inline-flex', alignItems: 'center' }}
       >
         {copied ? (
-          <Check size={11} style={{ color: 'var(--copper)' }} />
+          <Check size={11} style={{ color: 'var(--success)' }} />
         ) : (
           <Copy size={11} />
         )}

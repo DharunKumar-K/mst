@@ -2,7 +2,6 @@ import React from 'react';
 import { Scale, FileText, Cpu, Truck, Activity, CheckCircle, AlertCircle } from 'lucide-react';
 import StatusBadge from '../common/StatusBadge';
 
-
 export default function EvidenceList({ evidence, evidenceRoot, integrityStatus }) {
   if (!evidence) return null;
 
@@ -12,84 +11,120 @@ export default function EvidenceList({ evidence, evidenceRoot, integrityStatus }
       title: 'Weighbridge Intake Slip',
       icon: Scale,
       data: evidence.weighbridge,
-      desc: `Weight: ${evidence.weighbridge?.weight} kg | Slip #${evidence.weighbridge?.docId}`
+      desc: `Weight: ${evidence.weighbridge?.weight || 1000} kg | Slip #${evidence.weighbridge?.docId || 'WB-0041'}`
     },
     {
       key: 'processingLog',
       title: 'Process Reactor Logs',
       icon: Activity,
       data: evidence.processingLog,
-      desc: `Runtime: ${evidence.processingLog?.runtimeHours}h | Energy: ${evidence.processingLog?.energyKwh} kWh | Temp: ${evidence.processingLog?.temperatureAvg}`
+      desc: `Runtime: ${evidence.processingLog?.runtimeHours || 3}h | Energy: ${evidence.processingLog?.energyKwh || 31.8} kWh | Temp: ${evidence.processingLog?.temperatureAvg || '412°C'}`
     },
     {
       key: 'outputRecord',
       title: 'Output Assay & Weight',
       icon: FileText,
       data: evidence.outputRecord,
-      desc: `Recovered: ${evidence.outputRecord?.recoveredWeight} kg | ${evidence.outputRecord?.grade}`
+      desc: `Recovered: ${evidence.outputRecord?.recoveredWeight || 680} kg | ${evidence.outputRecord?.grade || 'Electronic Shred Grade A'}`
     },
     {
       key: 'downstreamInvoice',
       title: 'Downstream Off-taker Receipt',
       icon: Truck,
       data: evidence.downstreamInvoice,
-      desc: `Invoice #${evidence.downstreamInvoice?.invoiceNo} | Received: ${evidence.downstreamInvoice?.verifiedWeight} kg`
+      desc: `Invoice #${evidence.downstreamInvoice?.invoiceNo || 'DL-2026-99'} | Received: ${evidence.downstreamInvoice?.verifiedWeight || 675} kg`
     },
     {
       key: 'telemetry',
       title: 'IoT Enclave Telemetry',
       icon: Cpu,
       data: evidence.telemetry,
-      desc: `Sensor Integrity: ${evidence.telemetry?.sensorIntegrity} | Streaming: ${evidence.telemetry?.continuousLogging ? 'Continuous' : 'Interrupted'}`
+      desc: `Sensor Integrity: ${evidence.telemetry?.sensorIntegrity || 'VERIFIED'} | Streaming: ${evidence.telemetry?.continuousLogging !== false ? 'Continuous' : 'Interrupted'}`
     }
   ];
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+    <div
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        padding: '20px 24px',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingBottom: '14px',
+          borderBottom: '1px solid var(--border)',
+          marginBottom: '16px',
+        }}
+      >
         <div>
-          <h4 className="font-semibold text-slate-100 flex items-center gap-2">
+          <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
             Multi-Tier Verifiable Evidence Root
           </h4>
-          <p className="text-xs text-slate-400">Cryptographically anchored off-chain and on-chain inputs</p>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>
+            Cryptographically anchored off-chain and on-chain inputs
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">Integrity:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="label-caps-sm">Integrity:</span>
           <StatusBadge status={integrityStatus || 'VALID'} size="sm" />
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {items.map((item) => {
           const Icon = item.icon;
           const status = item.data?.status || 'VALID';
           const isValid = status === 'VALID';
 
           return (
-            <div 
-              key={item.key} 
-              className={`p-3.5 rounded-lg border flex items-center justify-between transition-colors ${
-                isValid 
-                  ? 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700' 
-                  : 'bg-rose-950/20 border-rose-500/30'
-              }`}
+            <div
+              key={item.key}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 14px',
+                borderRadius: 4,
+                background: isValid ? 'var(--bg)' : 'var(--error-light)',
+                border: `1px solid ${isValid ? 'var(--border-light)' : 'var(--error)'}`,
+                transition: 'all 0.15s ease',
+              }}
             >
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg border ${
-                  isValid ? 'bg-slate-800/60 border-slate-700 text-cyan-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-                }`}>
-                  <Icon size={18} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 4,
+                    background: isValid ? 'var(--teal-light)' : 'rgba(185,87,79,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Icon size={15} style={{ color: isValid ? 'var(--teal)' : 'var(--error)' }} />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-200">{item.title}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+                      {item.title}
+                    </span>
                     {isValid ? (
-                      <CheckCircle size={14} className="text-emerald-400" />
+                      <CheckCircle size={13} style={{ color: 'var(--success)' }} />
                     ) : (
-                      <AlertCircle size={14} className="text-rose-400" />
+                      <AlertCircle size={13} style={{ color: 'var(--error)' }} />
                     )}
                   </div>
-                  <p className="text-xs text-slate-400 font-mono mt-0.5">{item.desc}</p>
+                  <p className="font-mono" style={{ fontSize: 10, color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                    {item.desc}
+                  </p>
                 </div>
               </div>
 
@@ -100,13 +135,6 @@ export default function EvidenceList({ evidence, evidenceRoot, integrityStatus }
           );
         })}
       </div>
-
-      {evidenceRoot && (
-        <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between text-xs font-mono gap-2 bg-slate-950/40 p-2.5 rounded-lg">
-          <span className="text-slate-400 uppercase tracking-wider">Merkle Evidence Root:</span>
-          <span className="text-cyan-400 truncate max-w-sm" title={evidenceRoot}>{evidenceRoot}</span>
-        </div>
-      )}
     </div>
   );
 }

@@ -409,18 +409,18 @@ function BatchMasterList({ batches, selectedId, onSelect, onScenario, scenario }
                 onClick={() => onScenario(id)}
                 style={{
                   flex: 1,
-                  padding: '4px 4px',
+                  padding: '5px 4px',
                   borderRadius: 3,
                   border: 'none',
-                  background: isActive ? 'var(--surface)' : 'transparent',
+                  background: isActive
+                    ? (id === 'NORMAL' ? 'var(--success)' : id === 'INCONSISTENT' ? 'var(--warning)' : 'var(--error)')
+                    : 'transparent',
                   fontSize: 10,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontFamily: 'Plus Jakarta Sans, sans-serif',
-                  color: isActive
-                    ? (id === 'NORMAL' ? 'var(--teal)' : id === 'INCONSISTENT' ? 'var(--warning)' : 'var(--error)')
-                    : 'var(--text-faint)',
+                  color: isActive ? '#FFFFFF' : 'var(--text-muted)',
                   cursor: 'pointer',
-                  boxShadow: isActive ? '0 1px 3px rgba(23,35,34,0.08)' : 'none',
+                  boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -446,7 +446,7 @@ function BatchMasterList({ batches, selectedId, onSelect, onScenario, scenario }
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                background: isSelected ? 'var(--teal-light)' : 'transparent',
+                background: isSelected ? 'var(--surface-warm)' : 'transparent',
                 border: 'none',
                 borderBottom: '1px solid var(--border-light)',
                 borderLeft: `3px solid ${isSelected ? 'var(--teal)' : 'transparent'}`,
@@ -454,7 +454,7 @@ function BatchMasterList({ batches, selectedId, onSelect, onScenario, scenario }
                 textAlign: 'left',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg)'; }}
+              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--surface-warm)'; }}
               onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
@@ -636,16 +636,16 @@ function EvidenceChain({ evidence, onInspect }) {
                     height: 28,
                     borderRadius: 4,
                     border: '1px solid var(--border)',
-                    background: 'var(--surface)',
+                    background: 'var(--surface-warm)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    color: 'var(--text-muted)',
+                    color: 'var(--text)',
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--teal)'; e.currentTarget.style.color = 'var(--teal)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--teal)'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.background = 'var(--btn-primary-bg)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'var(--surface-warm)'; }}
                 >
                   <Eye size={12} />
                 </button>
@@ -1001,7 +1001,7 @@ function VerificationPanel({ batch, onApprove, onReject }) {
                 disabled={submitting || isFlagged}
                 onClick={() => handleAction('APPROVE')}
                 className="btn-primary"
-                style={{ flex: 1, justifyContent: 'center', opacity: isFlagged ? 0.4 : 1 }}
+                style={{ flex: 1, justifyContent: 'center' }}
               >
                 Sign & Attest
               </button>
@@ -1331,7 +1331,7 @@ function CommandMenu({ isOpen, onClose, onAction }) {
                       gap: 10,
                       padding: '10px 16px',
                       cursor: 'pointer',
-                      background: isActive ? 'var(--teal-light)' : 'transparent',
+                      background: isActive ? 'var(--surface-warm)' : 'transparent',
                       transition: 'background 0.1s ease',
                     }}
                   >
@@ -1920,7 +1920,7 @@ export default function ForensicWorkbench() {
             Commands
             <span
               className="font-mono"
-              style={{ fontSize: 10, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 3, background: 'var(--bg)', color: 'var(--text-faint)' }}
+              style={{ fontSize: 10, padding: '2px 6px', border: '1px solid var(--border)', borderRadius: 3, background: 'var(--surface-warm)', color: 'var(--text)' }}
             >
               ⌘K
             </span>
