@@ -1,23 +1,399 @@
 @import "tailwindcss";
 
-@layer base {
-  body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased min-h-screen selection:bg-emerald-500 selection:text-black;
-  }
-}
+/* ════════════════════════════════════════════════════════
+   CIRQPROOF — MINERAL AQUA / MATERIAL FORENSICS
+   Design System
+   Light mode. Editorial. Physical. Trustworthy.
+   ════════════════════════════════════════════════════════ */
 
-/* Custom scrollbars and glow utilities */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #0f172a;
-}
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+@layer base {
+  :root {
+    /* ── Core palette ── */
+    --bg:            #EEF5F2;
+    --surface:       #FFFFFF;
+    --teal:          #176B67;
+    --teal-dark:     #0F4E4B;
+    --teal-light:    #D4E8E6;
+    --teal-mid:      #5B7C78;
+    --coral:         #D8895B;
+    --coral-light:   #F5DDD1;
+    --gold:          #E5C66B;
+    --gold-light:    #F7F0D8;
+    --text:          #172322;
+    --text-muted:    #6B7775;
+    --text-faint:    #A8B5B3;
+    --border:        #CBD9D6;
+    --border-light:  #E2EDEA;
+    --success:       #4F8A62;
+    --success-light: #D6EBD9;
+    --warning:       #C68A3A;
+    --warning-light: #F5E8CF;
+    --error:         #B85C5C;
+    --error-light:   #F5DADA;
+
+    /* ── Spacing ── */
+    --radius-sm:  3px;
+    --radius:     6px;
+    --radius-lg:  10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+  }
+
+  /* ── Typography ── */
+
+  /* Serif: headings, evidence statements */
+  .font-serif {
+    font-family: 'Newsreader', Georgia, 'Times New Roman', serif;
+    font-feature-settings: "kern" 1, "liga" 1;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  /* Monospace: IDs, hashes, weights, readings */
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    font-feature-settings: "zero" 1;
+  }
+
+  h1, h2, h3, .serif {
+    font-family: 'Newsreader', Georgia, serif;
+    letter-spacing: -0.025em;
+    line-height: 1.12;
+  }
+
+  /* ── Material flow animation ── */
+  @keyframes flow-down {
+    0%   { transform: translateY(0);   opacity: 0; }
+    10%  { opacity: 0.7; }
+    90%  { opacity: 0.7; }
+    100% { transform: translateY(120px); opacity: 0; }
+  }
+
+  @keyframes flow-right {
+    0%   { transform: translateX(-100%); opacity: 0; }
+    15%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { transform: translateX(100%); opacity: 0; }
+  }
+
+  @keyframes reveal-up {
+    from { transform: translateY(12px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  @keyframes reveal-left {
+    from { transform: translateX(-10px); opacity: 0; }
+    to   { transform: translateX(0);     opacity: 1; }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes check-draw {
+    from { stroke-dashoffset: 24; }
+    to   { stroke-dashoffset: 0; }
+  }
+
+  @keyframes line-grow {
+    from { transform: scaleY(0); }
+    to   { transform: scaleY(1); }
+  }
+
+  @keyframes line-grow-x {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  @keyframes pulse-teal {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(23, 107, 103, 0.4); }
+    50%       { box-shadow: 0 0 0 6px rgba(23, 107, 103, 0); }
+  }
+
+  @keyframes float-particle {
+    0%   { transform: translateY(0) translateX(0)  scale(1);   opacity: 0.6; }
+    33%  { transform: translateY(30px) translateX(3px) scale(0.8); opacity: 0.8; }
+    66%  { transform: translateY(65px) translateX(-2px) scale(0.9); opacity: 0.7; }
+    100% { transform: translateY(105px) translateX(1px) scale(0.7); opacity: 0; }
+  }
+
+  @keyframes stage-enter {
+    from { transform: translateY(6px) scale(0.97); opacity: 0; }
+    to   { transform: translateY(0)   scale(1);    opacity: 1; }
+  }
+
+  @keyframes hash-scan {
+    0%   { clip-path: inset(0 100% 0 0); }
+    100% { clip-path: inset(0 0% 0 0); }
+  }
+
+  @keyframes transition-wipe {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* ── Utility classes ── */
+  .animate-reveal-up   { animation: reveal-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-reveal-left { animation: reveal-left 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-fade-in     { animation: fade-in 0.3s ease both; }
+  .animate-stage-enter { animation: stage-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-pulse-teal  { animation: pulse-teal 2s ease-in-out infinite; }
+  .animate-spin-slow   { animation: spin-slow 8s linear infinite; }
+
+  .stagger-1  { animation-delay: 60ms; }
+  .stagger-2  { animation-delay: 120ms; }
+  .stagger-3  { animation-delay: 180ms; }
+  .stagger-4  { animation-delay: 240ms; }
+  .stagger-5  { animation-delay: 300ms; }
+  .stagger-6  { animation-delay: 360ms; }
+  .stagger-7  { animation-delay: 420ms; }
+
+  /* ── Surface / panel ── */
+  .surface {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .surface-inset {
+    background: var(--bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── Typography scale ── */
+  .label-caps {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .data-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-feature-settings: "zero" 1;
+    color: var(--text);
+  }
+
+  /* ── Rule / divider ── */
+  .rule {
+    height: 1px;
+    background: var(--border);
+    border: none;
+  }
+
+  .rule-light {
+    height: 1px;
+    background: var(--border-light);
+    border: none;
+  }
+
+  /* ── Status badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: var(--radius-sm);
+  }
+
+  .badge-success {
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  .badge-warning {
+    background: var(--warning-light);
+    color: var(--warning);
+  }
+
+  .badge-error {
+    background: var(--error-light);
+    color: var(--error);
+  }
+
+  .badge-teal {
+    background: var(--teal-light);
+    color: var(--teal);
+  }
+
+  .badge-neutral {
+    background: var(--bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  /* ── Inputs ── */
+  input, textarea, select {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  input:focus, textarea:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(23, 107, 103, 0.1);
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: var(--text-faint);
+  }
+
+  /* ── Buttons ── */
+  button { cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+  .btn-primary {
+    background: var(--teal);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 24px;
+    transition: background 0.15s ease, transform 0.1s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary:hover  { background: var(--teal-dark); }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--teal);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 18px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--teal);
+    background: var(--teal-light);
+  }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--error);
+    border: 1px solid var(--error);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 18px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-danger:hover { background: var(--error-light); }
+
+  /* ── Scrollbars ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+  /* ── Selection ── */
+  ::selection { background: var(--teal-light); color: var(--teal-dark); }
+
+  /* ── Material flow particle ── */
+  .flow-particle {
+    position: absolute;
+    border-radius: 50%;
+    animation: float-particle linear infinite;
+    pointer-events: none;
+  }
+
+  /* ── Progress line (vertical) ── */
+  .progress-line {
+    transform-origin: top center;
+    animation: line-grow 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* ── Hash scan animation ── */
+  .hash-reveal {
+    animation: hash-scan 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* ── Shimmer loading state ── */
+  .shimmer {
+    background: linear-gradient(90deg, var(--bg) 25%, var(--border-light) 50%, var(--bg) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* ── Evidence document feel ── */
+  .evidence-doc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    position: relative;
+  }
+
+  .evidence-doc::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--teal);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  }
+
+  .evidence-doc-warning::before { background: var(--warning); }
+  .evidence-doc-error::before   { background: var(--error); }
+  .evidence-doc-success::before { background: var(--success); }
+
+  /* ── Annotation lines ── */
+  .annotation {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+  }
 }

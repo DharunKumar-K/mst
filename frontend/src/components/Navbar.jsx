@@ -1,115 +1,301 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { 
-  LayoutDashboard, 
-  PlusCircle, 
-  FileCheck2, 
-  ShieldAlert, 
-  Coins, 
-  Cpu, 
-  Blocks,
-  LogOut,
-  Radio,
-  ExternalLink
-} from 'lucide-react';
+import { LogOut, Command, ChevronDown } from 'lucide-react';
 
-export default function Navbar() {
+export default function Navbar({ onOpenCommand }) {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const navItems = [
-    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/verification', label: 'Verification', icon: FileCheck2 },
-    { to: '/create-batch', label: 'Create Batch', icon: PlusCircle },
-    { to: '/simulator', label: 'Simulator Panel', icon: Cpu, highlight: true },
-    { to: '/challenges', label: 'Challenges', icon: ShieldAlert },
-    { to: '/settlements', label: 'Settlements', icon: Coins },
-    { to: '/blockchain', label: 'MST Explorer', icon: Blocks },
+  const roleColor = {
+    RECYCLER: 'var(--teal)',
+    AUDITOR:  'var(--warning)',
+    PRODUCER: 'var(--teal-mid)',
+    BUYER:    'var(--coral)',
+  };
+
+  const navLinks = [
+    { to: '/',           label: 'Workbench',  end: true  },
+    { to: '/blockchain', label: 'Ledger',      end: false },
+    { to: '/simulator',  label: 'Simulator',   end: false },
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-6">
-            <div 
-              onClick={() => navigate('/')} 
-              className="flex items-center gap-2.5 cursor-pointer group"
+    <header
+      style={{
+        background: 'var(--surface)',
+        borderBottom: '1px solid var(--border)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1280,
+          margin: '0 auto',
+          padding: '0 24px',
+          height: 52,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        {/* Brand */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          >
+            {/* Logo mark */}
+            <div
+              style={{
+                width: 26,
+                height: 26,
+                border: '2px solid var(--teal)',
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-400 p-0.5 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-                <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                  <Radio size={18} className="text-emerald-400 animate-pulse" />
-                </div>
-              </div>
-              <div>
-                <span className="text-lg font-black tracking-wider text-white">CIRQ<span className="text-emerald-400">PROOF</span></span>
-                <span className="block text-[10px] font-mono text-slate-400 -mt-1">MST VERIFIED</span>
-              </div>
+              <div
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  background: 'var(--teal)',
+                }}
+              />
             </div>
+            <span
+              className="font-serif"
+              style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.025em' }}
+            >
+              CirqProof
+            </span>
+          </button>
 
-            {/* Navigation links */}
-            <nav className="hidden md:flex items-center gap-1">
-              {navItems.map(item => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={({ isActive }) => `px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition-all ${
-                      isActive 
-                        ? 'bg-slate-800 text-emerald-400 shadow-sm' 
-                        : item.highlight
-                        ? 'text-cyan-400 hover:bg-cyan-950/40 hover:text-cyan-300'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                    }`}
-                  >
-                    <Icon size={14} />
-                    <span>{item.label}</span>
-                  </NavLink>
-                );
-              })}
-            </nav>
-          </div>
-
-          {/* User profile & Network pill */}
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>MST Testnet: 4242</span>
-            </div>
-
-            {currentUser ? (
-              <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5">
-                <div className="text-right hidden sm:block">
-                  <span className="text-xs font-semibold text-slate-200 block truncate max-w-[140px]">
-                    {currentUser.name}
-                  </span>
-                  <span className="text-[10px] font-mono text-emerald-400">
-                    {currentUser.address.substring(0, 6)}...{currentUser.address.slice(-4)}
-                  </span>
-                </div>
-                <button
-                  onClick={() => {
-                    logout();
-                    navigate('/login');
-                  }}
-                  title="Switch Role / Logout"
-                  className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
-                >
-                  <LogOut size={16} />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => navigate('/login')}
-                className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-all"
+          {/* Nav links */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {navLinks.map(({ to, label, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                style={({ isActive }) => ({
+                  fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  padding: '6px 12px',
+                  borderRadius: 4,
+                  textDecoration: 'none',
+                  color: isActive ? 'var(--teal)' : 'var(--text-muted)',
+                  background: isActive ? 'var(--teal-light)' : 'transparent',
+                  transition: 'all 0.15s ease',
+                })}
+                onMouseEnter={e => {
+                  if (!e.currentTarget.classList.contains('active')) {
+                    e.currentTarget.style.color = 'var(--text)';
+                    e.currentTarget.style.background = 'var(--bg)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!e.currentTarget.style.background?.includes('teal')) {
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
               >
-                Sign In
-              </button>
-            )}
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+
+        {/* Right side */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Network status */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 10px',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              background: 'var(--bg)',
+            }}
+          >
+            <div
+              className="animate-pulse-teal"
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: 'var(--success)',
+              }}
+            />
+            <span
+              className="font-mono"
+              style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.05em' }}
+            >
+              MST:4242
+            </span>
           </div>
+
+          {/* Command bar trigger */}
+          {onOpenCommand && (
+            <button
+              onClick={onOpenCommand}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '5px 10px',
+                border: '1px solid var(--border)',
+                borderRadius: 4,
+                background: 'var(--bg)',
+                fontSize: 12,
+                color: 'var(--text-muted)',
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'var(--teal)';
+                e.currentTarget.style.color = 'var(--teal)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.color = 'var(--text-muted)';
+              }}
+              title="Open command bar (⌘K)"
+            >
+              <Command size={13} />
+              <span
+                style={{
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: 10,
+                  padding: '1px 5px',
+                  border: '1px solid var(--border)',
+                  borderRadius: 3,
+                  background: 'var(--surface)',
+                }}
+              >
+                ⌘K
+              </span>
+            </button>
+          )}
+
+          {/* User identity */}
+          {currentUser && (
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '5px 10px',
+                  border: '1px solid var(--border)',
+                  borderRadius: 4,
+                  background: 'var(--surface)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--teal)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+              >
+                {/* Role dot */}
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: roleColor[currentUser.id] || 'var(--teal-mid)',
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: 'var(--text)',
+                    maxWidth: 100,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {currentUser.id}
+                </span>
+                <ChevronDown size={11} style={{ color: 'var(--text-faint)' }} />
+              </button>
+
+              {/* Dropdown */}
+              {userMenuOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: 6,
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 6,
+                    padding: '6px',
+                    minWidth: 180,
+                    boxShadow: '0 4px 16px rgba(23,35,34,0.08)',
+                    zIndex: 50,
+                  }}
+                >
+                  <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-light)', marginBottom: 4 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{currentUser.id}</div>
+                    <div
+                      className="font-mono"
+                      style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}
+                    >
+                      {currentUser.address?.slice(0, 14)}…
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setUserMenuOpen(false); logout(); navigate('/login'); }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '7px 10px',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: 4,
+                      fontSize: 13,
+                      color: 'var(--error)',
+                      cursor: 'pointer',
+                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontWeight: 500,
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--error-light)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+                  >
+                    <LogOut size={13} />
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </header>
