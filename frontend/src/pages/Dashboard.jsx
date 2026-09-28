@@ -1,36 +1,423 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import StatusBadge from '../components/StatusBadge';
-import ScenarioBadge from '../components/ScenarioBadge';
-import TxHashLink from '../components/TxHashLink';
-import { 
-  Package, 
-  CheckCircle, 
-  AlertTriangle, 
-  ShieldAlert, 
-  Weight, 
-  Coins, 
-  ArrowUpRight, 
-  Cpu, 
-  PlusCircle,
-  RefreshCw
+import {
+  ArrowRight, RefreshCw, TrendingUp, Layers,
+  Activity, Package, CheckCircle, AlertTriangle,
+  ShieldAlert, Clock, Cpu, PlusCircle
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  CartesianGrid, 
-  BarChart, 
-  Bar 
-} from 'recharts';
 
+/* ─────────────────────────────────────────────
+   ANIMATED NUMBER
+─────────────────────────────────────────────── */
+function AnimNumber({ value, suffix = '', prefix = '' }) {
+  const [display, setDisplay] = useState(0);
+  const num = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.]/g, '')) || 0;
+
+  useEffect(() => {
+    let start = null;
+    const duration = 900;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const prog = Math.min((ts - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - prog, 3);
+      setDisplay(Math.round(ease * num));
+      if (prog < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [num]);
+
+  return <span>{prefix}{display.toLocaleString()}{suffix}</span>;
+}
+
+/* ─────────────────────────────────────────────
+   MATERIAL FLOW NODE
+─────────────────────────────────────────────── */
+const FLOW_CONFIG = [
+  { id: 'input',     label: 'INPUT',     color: '#806653', bg: '#F0E8E0', icon: '⬜', unit: 'KG' },
+  { id: 'processed', label: 'PROCESSED', color: '#C9683F', bg: '#F5DDD1', icon: '⚙', unit: 'KG' },
+  { id: 'recovered', label: 'RECOVERED', color: '#C8A75A', bg: '#F7EDD6', icon: '♻', unit: 'KG' },
+  { id: 'verified',  label: 'VERIFIED',  color: '#3F805D', bg: '#D8EDDF', icon: '✓', unit: 'KG' },
+];
+
+function FlowParticle({ color, delay, duration, horizontal }) {
+  const style = horizontal
+    ? {
+        position: 'absolute',
+        top: '50%', left: 0,
+        transform: 'translateY(-50%)',
+        width: 5, height: 5, borderRadius: '1px',
+        background: color,
+        animationName: 'float-particle-right',
+        animationDuration: `${duration}s`,
+        animationDelay: `${delay}s`,
+        animationTimingFunction: 'linear',
+        animationIterationCount: 'infinite',
+        '--particle-travel': '80px',
+        zIndex: 2,
+        opacity: 0,
+      }
+    : {};
+  return <div style={style} />;
+}
+
+function MaterialFlowNode({ config, value, batch, index, isSelected, onClick }) {
+  const percentage = batch ? Math.round((value / (batch.inputWeight || 1)) * 100) : 0;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        position: 'relative',
+        flex: 1,
+      }}
+    >
+      <div
+        onClick={onClick}
+        style={{
+          background: isSelected ? config.color : 'var(--surface)',
+          border: `2px solid ${isSelected ? config.color : 'var(--border-light)'}`,
+          borderRadius: 8,
+          padding: '20px 16px',
+          width: '100%',
+          cursor: 'pointer',
+          transition: 'all 0.25s ease',
+          boxShadow: isSelected
+            ? `0 8px 24px ${config.color}30`
+            : 'var(--shadow-sm)',
+          transform: isSelected ? 'translateY(-4px)' : 'translateY(0)',
+        }}
+        onMouseEnter={e => {
+          if (!isSelected) {
+            e.currentTarget.style.borderColor = config.color;
+            e.currentTarget.style.transform = 'translateY(-3px)';
+            e.currentTarget.style.boxShadow = `0 6px 20px ${config.color}20`;
+          }
+        }}
+        onMouseLeave={e => {
+          if (!isSelected) {
+            e.currentTarget.style.borderColor = 'var(--border-light)';
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+          }
+        }}
+      >
+        {/* Node indicator */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <div
+            style={{
+              width: 28, height: 28, borderRadius: 6,
+              background: isSelected ? 'rgba(255,255,255,0.2)' : config.bg,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13,
+            }}
+          >
+            {index + 1}
+          </div>
+          <div
+            className="font-mono"
+            style={{
+              fontSize: 10, fontWeight: 700,
+              color: isSelected ? 'rgba(255,255,255,0.6)' : config.color,
+              letterSpacing: '0.08em',
+            }}
+          >
+            {percentage}%
+          </div>
+        </div>
+
+        {/* Weight value */}
+        <div
+          className="font-mono"
+          style={{
+            fontSize: 22, fontWeight: 700,
+            color: isSelected ? '#fff' : 'var(--text)',
+            letterSpacing: '-0.04em', lineHeight: 1,
+            marginBottom: 4,
+          }}
+        >
+          {value ? <AnimNumber value={value} suffix="" /> : '—'}
+        </div>
+        <div
+          className="font-mono"
+          style={{
+            fontSize: 9, color: isSelected ? 'rgba(255,255,255,0.5)' : config.color,
+            letterSpacing: '0.1em', fontWeight: 700,
+          }}
+        >
+          {config.unit}
+        </div>
+
+        {/* Label */}
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 10, fontWeight: 700,
+            letterSpacing: '0.1em',
+            color: isSelected ? 'rgba(255,255,255,0.8)' : '#6F7770',
+            fontFamily: 'Plus Jakarta Sans, sans-serif',
+          }}
+        >
+          {config.label}
+        </div>
+
+        {/* Progress bar */}
+        <div
+          style={{
+            height: 3, background: isSelected ? 'rgba(255,255,255,0.2)' : '#F4F1E8',
+            borderRadius: 2, marginTop: 10, overflow: 'hidden',
+          }}
+        >
+          <div
+            className="animate-line-grow-x"
+            style={{
+              height: '100%',
+              width: `${percentage}%`,
+              background: isSelected ? 'rgba(255,255,255,0.6)' : config.color,
+              borderRadius: 2,
+              animationDelay: `${index * 150}ms`,
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   LIVE EVIDENCE TIMELINE
+─────────────────────────────────────────────── */
+const TIMELINE_EVENTS = [
+  { time: '10:24', label: 'Batch CP-041 created', type: 'batch', color: '#2F6F5E' },
+  { time: '10:26', label: 'Weighbridge evidence received', type: 'evidence', color: '#806653' },
+  { time: '10:32', label: 'Processing telemetry logged', type: 'process', color: '#C9683F' },
+  { time: '10:41', label: 'AI reconciliation complete — 96.4% consistent', type: 'ai', color: '#C8A75A' },
+  { time: '10:45', label: 'Human verification initiated', type: 'verify', color: '#3F805D' },
+  { time: '10:52', label: 'Block #8841 committed — hash verified', type: 'chain', color: '#123C36' },
+  { time: '11:03', label: 'Settlement escrow released', type: 'settle', color: '#3F805D' },
+];
+
+function LiveTimeline({ batches }) {
+  const [events, setEvents] = useState([]);
+
+  // Build events from real batches + static demo events
+  useEffect(() => {
+    const batchEvents = batches.slice(-3).map((b, i) => ({
+      time: new Date(Date.now() - (batches.length - i) * 12 * 60000)
+        .toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' }),
+      label: `Batch ${b.id} — ${b.status}`,
+      type: b.status === 'VERIFIED' ? 'verify' : b.status === 'FLAGGED' ? 'ai' : 'batch',
+      color: b.status === 'VERIFIED' ? '#3F805D' : b.status === 'FLAGGED' ? '#B9574F' : '#2F6F5E',
+    }));
+
+    const combined = [...batchEvents, ...TIMELINE_EVENTS].slice(0, 8);
+    setEvents(combined);
+  }, [batches]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
+      {/* Vertical line */}
+      <div
+        style={{
+          position: 'absolute', left: 8, top: 8, bottom: 0,
+          width: 1, background: 'var(--border-light)',
+        }}
+      />
+      {events.map((ev, i) => (
+        <div
+          key={i}
+          className="animate-reveal-left"
+          style={{
+            display: 'flex', gap: 14, paddingBottom: 16,
+            position: 'relative', zIndex: 1,
+            animationDelay: `${i * 60}ms`,
+          }}
+        >
+          {/* Dot */}
+          <div
+            style={{
+              width: 16, height: 16, borderRadius: '50%',
+              border: `2px solid ${ev.color}`,
+              background: 'var(--surface)', flexShrink: 0,
+              marginTop: 2,
+              boxShadow: `0 0 0 3px ${ev.color}15`,
+            }}
+          />
+          <div>
+            <div
+              className="font-mono"
+              style={{ fontSize: 9, color: 'var(--text-faint)', letterSpacing: '0.08em', marginBottom: 3 }}
+            >
+              {ev.time}
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text)', lineHeight: 1.4 }}>
+              {ev.label}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   PLANT UNIT CARD
+─────────────────────────────────────────────── */
+function PlantUnitCard() {
+  return (
+    <div
+      style={{
+        background: '#123C36',
+        borderRadius: 8,
+        overflow: 'hidden',
+        position: 'relative',
+        boxShadow: '0 8px 24px rgba(18,60,54,0.2)',
+      }}
+    >
+      {/* Image area with gradient overlay */}
+      <div
+        style={{
+          height: 120,
+          background: 'linear-gradient(135deg, #1a5248 0%, #0e2e2a 50%, #123C36 100%)',
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {/* Stylized plant visualization */}
+        <div style={{ position: 'absolute', inset: 0, opacity: 0.4 }}>
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                width: 2 + (i % 3) * 2,
+                height: 30 + (i % 4) * 15,
+                background: i % 2 === 0 ? '#A8C8B5' : '#C9683F',
+                borderRadius: 2,
+                left: `${10 + i * 12}%`,
+                bottom: 0,
+                opacity: 0.5 + (i % 3) * 0.15,
+              }}
+            />
+          ))}
+          {/* Conveyor belt lines */}
+          <div
+            style={{
+              position: 'absolute', bottom: 18, left: 0, right: 0,
+              height: 3, background: 'rgba(168,200,181,0.3)',
+            }}
+          />
+        </div>
+
+        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          <div
+            className="font-mono"
+            style={{ fontSize: 9, color: 'rgba(168,200,181,0.7)', letterSpacing: '0.15em', marginBottom: 4 }}
+          >
+            UNIT 07 — E-WASTE
+          </div>
+          <div style={{ fontSize: 24 }}>♻</div>
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 18px' }}>
+        <div style={{ marginBottom: 12 }}>
+          <div
+            style={{ fontSize: 12, fontWeight: 700, color: '#fff', letterSpacing: '0.06em' }}
+          >
+            PLANT UNIT 07
+          </div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+            Processing Electronic Waste
+          </div>
+        </div>
+
+        {[
+          { label: 'THROUGHPUT', value: '950 KG', color: '#A8C8B5' },
+          { label: 'ENERGY',     value: '31.8 kWh', color: '#C8A75A' },
+          { label: 'RUNTIME',    value: '182 min', color: '#C9683F' },
+        ].map(m => (
+          <div
+            key={m.label}
+            style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <span
+              className="label-caps-sm"
+              style={{ color: 'rgba(255,255,255,0.35)' }}
+            >
+              {m.label}
+            </span>
+            <span
+              className="font-mono"
+              style={{ fontSize: 13, fontWeight: 700, color: m.color }}
+            >
+              {m.value}
+            </span>
+          </div>
+        ))}
+
+        {/* Mini activity bars */}
+        <div style={{ marginTop: 14, display: 'flex', gap: 3, alignItems: 'flex-end', height: 28 }}>
+          {[0.4, 0.7, 0.55, 0.9, 0.75, 0.6, 0.85, 0.95, 0.8, 0.65].map((h, i) => (
+            <div
+              key={i}
+              style={{
+                flex: 1, height: `${h * 100}%`,
+                background: h > 0.8 ? '#A8C8B5' : h > 0.6 ? '#C8A75A' : 'rgba(255,255,255,0.2)',
+                borderRadius: 2,
+                transition: 'height 0.5s ease',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   STATUS BADGE INLINE
+─────────────────────────────────────────────── */
+function StatusTag({ status }) {
+  const config = {
+    VERIFIED:    { bg: '#D8EDDF', color: '#3F805D', label: 'VERIFIED' },
+    FLAGGED:     { bg: '#F5DADA', color: '#B9574F', label: 'FLAGGED' },
+    PENDING:     { bg: '#F5E8CF', color: '#C38A3C', label: 'PENDING' },
+    CHALLENGED:  { bg: '#F5DADA', color: '#B9574F', label: 'CHALLENGED' },
+    PROCESSING:  { bg: '#F5DDD1', color: '#C9683F', label: 'PROCESSING' },
+    SUBMITTED:   { bg: '#E4EFE8', color: '#2F6F5E', label: 'SUBMITTED' },
+    SETTLED:     { bg: '#D8EDDF', color: '#3F805D', label: 'SETTLED' },
+  }[status] || { bg: '#F4F1E8', color: '#6F7770', label: status };
+
+  return (
+    <span
+      style={{
+        background: config.bg, color: config.color,
+        fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+        padding: '3px 8px', borderRadius: 2,
+        fontFamily: 'Plus Jakarta Sans, sans-serif',
+      }}
+    >
+      {config.label}
+    </span>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   MAIN DASHBOARD
+─────────────────────────────────────────────── */
 export default function Dashboard() {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStage, setSelectedStage] = useState(1);
   const navigate = useNavigate();
 
   const loadData = async () => {
@@ -45,234 +432,377 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
-  // Compute metrics
-  const totalBatches = batches.length;
-  const verifiedCount = batches.filter(b => b.status === 'VERIFIED').length;
-  const flaggedCount = batches.filter(b => b.status === 'FLAGGED').length;
+  // Compute aggregate metrics
+  const totalInput     = batches.reduce((a, b) => a + (b.inputWeight || 0), 0);
+  const totalProcessed = batches.reduce((a, b) => a + (b.processedWeight || b.inputWeight * 0.95 || 0), 0);
+  const totalRecovered = batches.reduce((a, b) => a + (b.claimedRecoveredWeight || 0), 0);
+  const totalVerified  = batches.filter(b => b.status === 'VERIFIED')
+                                .reduce((a, b) => a + (b.claimedRecoveredWeight || 0), 0);
+
+  const flowValues = [totalInput, totalProcessed, totalRecovered, totalVerified];
+
+  const verifiedCount   = batches.filter(b => b.status === 'VERIFIED').length;
+  const flaggedCount    = batches.filter(b => b.status === 'FLAGGED').length;
   const challengedCount = batches.filter(b => b.status === 'CHALLENGED').length;
-  const totalRecoveredWeight = batches.reduce((acc, b) => acc + (b.claimedRecoveredWeight || 0), 0);
-  const totalSettlementAmount = batches.reduce((acc, b) => acc + (b.settlement?.amountINR || 0), 0);
-
-  // Chart data for Recovery trends
-  const chartData = batches.slice(-6).map((b, i) => ({
-    name: b.id.replace('BATCH-2026-', '#'),
-    Intake: b.inputWeight,
-    Recovered: b.claimedRecoveredWeight,
-    Downstream: b.downstreamWeight
-  }));
-
-  const statCards = [
-    { title: 'Total Batches', value: totalBatches, icon: Package, color: 'text-cyan-400', border: 'border-cyan-500/30' },
-    { title: 'Verified Safe', value: verifiedCount, icon: CheckCircle, color: 'text-emerald-400', border: 'border-emerald-500/30' },
-    { title: 'AI Flagged', value: flaggedCount, icon: AlertTriangle, color: 'text-rose-400', border: 'border-rose-500/30' },
-    { title: 'Challenged / Disputed', value: challengedCount, icon: ShieldAlert, color: 'text-amber-400', border: 'border-amber-500/30' },
-    { title: 'Recovered Weight', value: `${totalRecoveredWeight.toLocaleString()} kg`, icon: Weight, color: 'text-teal-400', border: 'border-teal-500/30' },
-    { title: 'Settlement Escrow', value: `₹${totalSettlementAmount.toLocaleString()}`, icon: Coins, color: 'text-yellow-400', border: 'border-yellow-500/30' }
-  ];
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-emerald-400">
-              Protocol Overview
-            </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span className="text-xs text-slate-400">Real-time off-chain AI + MST Testnet sync</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-white">Circular Verification Desk</h2>
-          <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            Live telemetry audits, Merkle root commitment, and zero-counterparty settlement for circular recycling.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/simulator')}
-            className="px-4 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 font-semibold text-xs flex items-center gap-2 transition-all shadow-sm"
-          >
-            <Cpu size={15} />
-            <span>Judge Simulator</span>
-          </button>
-          <button
-            onClick={() => navigate('/create-batch')}
-            className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20"
-          >
-            <PlusCircle size={15} />
-            <span>Create Batch</span>
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {statCards.map((card, i) => {
-          const Icon = card.icon;
-          return (
-            <div key={i} className={`bg-slate-900/80 border ${card.border} rounded-xl p-4 shadow-sm backdrop-blur-sm flex flex-col justify-between`}>
-              <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-[11px] font-medium uppercase tracking-wider">{card.title}</span>
-                <Icon size={16} className={card.color} />
-              </div>
-              <div className="text-xl sm:text-2xl font-black text-white">
-                {loading ? '...' : card.value}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Analytics Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
+    <div style={{ display: 'flex', gap: 24, minHeight: 0 }}>
+      {/* ═══ LEFT MAIN — Material Flow Investigation ═══ */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* Page header */}
+        <div className="animate-reveal-up">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <h3 className="text-sm font-semibold text-slate-100">Mass Balance Tracking</h3>
-              <p className="text-xs text-slate-400">Intake vs Claimed Recovery vs Downstream Receipts (kg)</p>
+              <div className="label-caps" style={{ marginBottom: 8 }}>Investigation Overview</div>
+              <h1
+                className="font-serif"
+                style={{ fontSize: 32, color: 'var(--text)', lineHeight: 1.1, margin: 0 }}
+              >
+                Material Flow<br />Dashboard
+              </h1>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+                {batches.length} batches · {verifiedCount} verified · {flaggedCount + challengedCount} flagged
+              </p>
             </div>
-            <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-              Thermodynamic Verifier
-            </span>
-          </div>
-
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="intakeGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="recGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }}
-                />
-                <Area type="monotone" dataKey="Intake" stroke="#06b6d4" fillOpacity={1} fill="url(#intakeGrad)" />
-                <Area type="monotone" dataKey="Recovered" stroke="#10b981" fillOpacity={1} fill="url(#recGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                onClick={loadData}
+                className="btn-secondary"
+                style={{ padding: '8px 10px' }}
+                title="Refresh data"
+              >
+                <RefreshCw size={13} />
+              </button>
+              <button
+                onClick={() => navigate('/simulator')}
+                className="btn-secondary"
+              >
+                <Cpu size={13} />
+                Simulate
+              </button>
+              <button
+                onClick={() => navigate('/workbench')}
+                className="btn-primary"
+              >
+                <PlusCircle size={13} />
+                New Batch
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Downstream verification accuracy */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-100">Discrepancy Audit</h3>
-            <p className="text-xs text-slate-400 mb-4">Comparison of claimed recovery to certified off-take</p>
-
-            <div className="h-48 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="name" stroke="#64748b" fontSize={10} />
-                  <YAxis stroke="#64748b" fontSize={10} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }}
-                  />
-                  <Bar dataKey="Recovered" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Downstream" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+        {/* Material flow nodes */}
+        <div
+          className="animate-reveal-up stagger-2"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border-light)',
+            borderRadius: 8,
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div>
+              <div className="label-caps" style={{ marginBottom: 4 }}>Primary Material Flow</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Aggregate across all active batches</div>
+            </div>
+            <div
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                fontSize: 10, color: 'var(--success)', fontWeight: 700,
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+              }}
+            >
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} />
+              LIVE
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-emerald-500" /> Claimed</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-amber-500" /> Downstream</span>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
+            {FLOW_CONFIG.map((config, i) => (
+              <React.Fragment key={config.id}>
+                <MaterialFlowNode
+                  config={config}
+                  value={flowValues[i]}
+                  batch={{ inputWeight: totalInput }}
+                  index={i}
+                  isSelected={selectedStage === i}
+                  onClick={() => setSelectedStage(i)}
+                />
+                {i < FLOW_CONFIG.length - 1 && (
+                  <div
+                    style={{
+                      display: 'flex', alignItems: 'center',
+                      flexShrink: 0, position: 'relative', width: 40,
+                    }}
+                  >
+                    {/* Flow connector */}
+                    <div
+                      style={{
+                        width: '100%', height: 2,
+                        background: `linear-gradient(to right, ${FLOW_CONFIG[i].color}60, ${FLOW_CONFIG[i + 1].color}60)`,
+                        borderRadius: 2,
+                        position: 'relative',
+                      }}
+                    >
+                      {/* Arrow */}
+                      <div
+                        style={{
+                          position: 'absolute', right: 0, top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: 0, height: 0,
+                          borderLeft: `6px solid ${FLOW_CONFIG[i + 1].color}80`,
+                          borderTop: '4px solid transparent',
+                          borderBottom: '4px solid transparent',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        {/* KPI summary row */}
+        <div
+          className="animate-reveal-up stagger-3"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}
+        >
+          {[
+            { label: 'Total Batches',   value: batches.length, icon: Package,       color: 'var(--teal)', bg: 'var(--teal-wash)' },
+            { label: 'Verified',        value: verifiedCount,  icon: CheckCircle,   color: 'var(--success)', bg: 'var(--success-light)' },
+            { label: 'Flagged',         value: flaggedCount,   icon: AlertTriangle, color: 'var(--error)', bg: 'var(--error-light)' },
+            { label: 'Challenged',      value: challengedCount,icon: ShieldAlert,   color: 'var(--warning)', bg: 'var(--warning-light)' },
+          ].map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+              <div
+                key={i}
+                style={{
+                  background: 'var(--surface)', border: '1px solid var(--border-light)',
+                  borderRadius: 8, padding: '16px',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                  <div
+                    style={{
+                      width: 30, height: 30, borderRadius: 6, background: kpi.bg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <Icon size={14} style={{ color: kpi.color }} />
+                  </div>
+                </div>
+                <div
+                  className="font-mono"
+                  style={{ fontSize: 26, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.04em', lineHeight: 1 }}
+                >
+                  {loading ? '—' : <AnimNumber value={kpi.value} />}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, fontWeight: 500 }}>
+                  {kpi.label}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Batch ledger table */}
+        <div
+          className="animate-reveal-up stagger-4"
+          style={{
+            background: 'var(--surface)', border: '1px solid var(--border-light)',
+            borderRadius: 8, overflow: 'hidden',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '16px 20px', borderBottom: '1px solid var(--border-light)',
+          }}>
+            <div>
+              <div className="label-caps" style={{ marginBottom: 3 }}>Batch Processing Ledger</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Immutable trace and validation records</div>
+            </div>
+            <button onClick={() => navigate('/workbench')} className="btn-secondary" style={{ padding: '6px 14px' }}>
+              View All <ArrowRight size={12} />
+            </button>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: 'var(--bg)' }}>
+                  {['Batch ID', 'Material', 'Intake / Recovery', 'Status', 'Settlement', ''].map(h => (
+                    <th
+                      key={h}
+                      className="label-caps-sm"
+                      style={{
+                        padding: '10px 16px', textAlign: 'left',
+                        borderBottom: '1px solid var(--border-light)',
+                        fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  [...Array(4)].map((_, i) => (
+                    <tr key={i}>
+                      {[...Array(6)].map((_, j) => (
+                        <td key={j} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light)' }}>
+                          <div className="shimmer" style={{ height: 14, borderRadius: 3, width: '70%' }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : batches.slice(0, 6).map((batch) => (
+                  <tr
+                    key={batch.id}
+                    onClick={() => navigate('/workbench')}
+                    style={{
+                      borderBottom: '1px solid var(--border-light)', cursor: 'pointer',
+                      transition: 'background 0.12s ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ padding: '12px 16px' }}>
+                      <span
+                        className="font-mono"
+                        style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}
+                      >
+                        {batch.id}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--text)', fontWeight: 500 }}>
+                      {batch.material}
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span className="font-mono" style={{ fontSize: 12, color: 'var(--text)', fontWeight: 700 }}>
+                        {batch.inputWeight?.toLocaleString()}
+                      </span>
+                      <span style={{ color: 'var(--border)', fontSize: 11, margin: '0 4px' }}>/</span>
+                      <span className="font-mono" style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700 }}>
+                        {batch.claimedRecoveredWeight?.toLocaleString()} kg
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <StatusTag status={batch.status} />
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+                        ₹{batch.settlement?.amountINR?.toLocaleString() || '—'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <button
+                        className="btn-secondary"
+                        style={{ padding: '5px 10px', fontSize: 11 }}
+                        onClick={e => { e.stopPropagation(); navigate('/workbench'); }}
+                      >
+                        <ArrowRight size={11} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      {/* Recent Batches Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div>
-            <h3 className="text-base font-bold text-slate-100">Batch Processing Ledger</h3>
-            <p className="text-xs text-slate-400">Immutable trace and validation telemetry</p>
-          </div>
-          <button
-            onClick={loadData}
-            className="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800 transition-colors"
-            title="Refresh Ledger"
-          >
-            <RefreshCw size={15} />
-          </button>
+      {/* ═══ RIGHT PANEL — Live Activity + Plant ═══ */}
+      <div
+        style={{
+          width: 280,
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 20,
+        }}
+      >
+        {/* Plant unit card */}
+        <div className="animate-reveal-right stagger-2">
+          <PlantUnitCard />
         </div>
 
-        <div className="overflow-x-auto mt-2">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
-                <th className="py-3 px-3">Batch ID</th>
-                <th className="py-3 px-3">Material</th>
-                <th className="py-3 px-3">Intake / Claimed</th>
-                <th className="py-3 px-3">Scenario</th>
-                <th className="py-3 px-3">Integrity</th>
-                <th className="py-3 px-3">Settlement</th>
-                <th className="py-3 px-3">MST Hash</th>
-                <th className="py-3 px-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono">
-              {batches.map((batch) => (
-                <tr 
-                  key={batch.id} 
-                  className="hover:bg-slate-800/40 transition-colors cursor-pointer group"
-                  onClick={() => navigate(`/batch/${batch.id}`)}
-                >
-                  <td className="py-3.5 px-3 font-bold text-cyan-400 flex items-center gap-1.5">
-                    <span>{batch.id}</span>
-                  </td>
-                  <td className="py-3.5 px-3 text-slate-300 font-sans font-medium">
-                    {batch.material}
-                  </td>
-                  <td className="py-3.5 px-3 text-slate-300">
-                    <span className="text-white font-semibold">{batch.inputWeight}</span>
-                    <span className="text-slate-500"> / </span>
-                    <span className="text-emerald-400 font-semibold">{batch.claimedRecoveredWeight} kg</span>
-                  </td>
-                  <td className="py-3.5 px-3">
-                    <ScenarioBadge scenario={batch.scenario} />
-                  </td>
-                  <td className="py-3.5 px-3">
-                    <StatusBadge status={batch.status} size="sm" />
-                  </td>
-                  <td className="py-3.5 px-3 text-slate-300 font-sans">
-                    <span className="font-semibold">₹{batch.settlement?.amountINR?.toLocaleString()}</span>
-                    <span className="block text-[10px] text-slate-400 font-mono">{batch.settlement?.status}</span>
-                  </td>
-                  <td className="py-3.5 px-3">
-                    <TxHashLink hash={batch.blockchain?.txHash} />
-                  </td>
-                  <td className="py-3.5 px-3 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/batch/${batch.id}`);
-                      }}
-                      className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-emerald-500 hover:text-slate-950 transition-colors"
-                      title="Inspect Batch"
-                    >
-                      <ArrowUpRight size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Live evidence activity */}
+        <div
+          className="animate-reveal-right stagger-3"
+          style={{
+            background: 'var(--surface)', border: '1px solid var(--border-light)',
+            borderRadius: 8, overflow: 'hidden',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <div style={{
+            padding: '14px 16px', borderBottom: '1px solid var(--border-light)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <div className="label-caps">Live Evidence Activity</div>
+            <div
+              style={{
+                width: 6, height: 6, borderRadius: '50%', background: 'var(--success)',
+                animation: 'pulse-ring 2.2s ease-in-out infinite',
+              }}
+            />
+          </div>
+          <div style={{ padding: '16px' }}>
+            <LiveTimeline batches={batches} />
+          </div>
+        </div>
+
+        {/* Chain status */}
+        <div
+          className="animate-reveal-right stagger-4"
+          style={{
+            background: '#123C36',
+            borderRadius: 8, padding: '16px 18px',
+            boxShadow: '0 4px 16px rgba(18,60,54,0.2)',
+          }}
+        >
+          <div
+            className="label-caps-sm"
+            style={{ color: 'rgba(168,200,181,0.6)', marginBottom: 12 }}
+          >
+            MST Testnet Status
+          </div>
+          {[
+            { label: 'CHAIN ID',     value: '4242', color: '#A8C8B5' },
+            { label: 'LATEST BLOCK', value: '#8,841', color: '#C8A75A' },
+            { label: 'GAS PRICE',    value: '12 gwei', color: '#C9683F' },
+            { label: 'AI VERIFIER',  value: 'ACTIVE', color: '#3F805D' },
+          ].map(item => (
+            <div
+              key={item.label}
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
+              }}
+            >
+              <span
+                className="font-mono"
+                style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}
+              >
+                {item.label}
+              </span>
+              <span
+                className="font-mono"
+                style={{ fontSize: 11, fontWeight: 700, color: item.color }}
+              >
+                {item.value}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

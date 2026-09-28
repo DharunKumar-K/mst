@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import StatusBadge from '../components/StatusBadge';
-import TxHashLink from '../components/TxHashLink';
-import { 
-  Coins, 
-  Lock, 
-  Unlock, 
-  RotateCcw, 
-  CheckCircle2, 
-  AlertOctagon, 
-  ExternalLink,
-  ShieldCheck
+import {
+  Coins, Lock, Unlock, RotateCcw, CheckCircle2,
+  AlertOctagon, ExternalLink, ShieldCheck, Scale,
+  Layers, ArrowRight, Clock, FileCheck
 } from 'lucide-react';
 
 export default function Settlements() {
@@ -46,126 +39,347 @@ export default function Settlements() {
     }
   };
 
-  const statuses = ['PENDING', 'HELD', 'RELEASED', 'REFUNDED'];
+  const totalEscrow = batches.reduce((acc, b) => acc + (b.settlement?.amountINR || 0), 0);
+  const releasedEscrow = batches
+    .filter(b => b.settlement?.status === 'RELEASED')
+    .reduce((acc, b) => acc + (b.settlement?.amountINR || 0), 0);
+  const heldEscrow = batches
+    .filter(b => b.settlement?.status === 'HELD' || b.settlement?.status === 'PENDING')
+    .reduce((acc, b) => acc + (b.settlement?.amountINR || 0), 0);
+  const disputedEscrow = batches
+    .filter(b => b.status === 'CHALLENGED' || b.settlement?.status === 'REFUNDED')
+    .reduce((acc, b) => acc + (b.settlement?.amountINR || 0), 0);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 380 }}>
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              width: 32, height: 32,
+              border: '2px solid var(--border)',
+              borderTopColor: 'var(--teal)',
+              borderRadius: '50%',
+              margin: '0 auto 12px',
+              animation: 'spin-slow 1s linear infinite'
+            }}
+          />
+          <div className="font-mono" style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+            Loading Escrow Settlement Engine...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'RELEASED': return { text: 'var(--success)', bg: 'var(--success-light)', border: 'var(--success)' };
+      case 'HELD':     return { text: 'var(--orange)', bg: 'var(--orange-light)', border: 'var(--orange)' };
+      case 'REFUNDED': return { text: 'var(--earth)', bg: 'var(--earth-light)', border: 'var(--earth)' };
+      case 'PENDING':  return { text: 'var(--gold)', bg: 'var(--gold-light)', border: 'var(--gold)' };
+      default:         return { text: 'var(--text-muted)', bg: 'var(--bg)', border: 'var(--border)' };
+    }
+  };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1 text-emerald-400">
-            <Coins size={18} />
-            <span className="text-xs font-mono font-bold uppercase tracking-wider">
-              Smart Contract Escrow Engine
-            </span>
+    <div style={{ maxWidth: 1120, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Header Banner */}
+      <div
+        className="animate-reveal-up"
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          padding: '24px 28px',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div
+                style={{
+                  width: 22, height: 22, borderRadius: 4,
+                  background: 'var(--teal-light)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <Coins size={13} style={{ color: 'var(--teal)' }} />
+              </div>
+              <span className="label-caps" style={{ color: 'var(--teal)' }}>
+                SMART CONTRACT ESCROW PROTOCOL
+              </span>
+              <span style={{ color: 'var(--border)' }}>·</span>
+              <span className="font-mono" style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+                EIP-4337 COMPLIANT
+              </span>
+            </div>
+            <h1 className="font-serif" style={{ fontSize: 28, color: 'var(--text)', margin: '0 0 4px', lineHeight: 1.15 }}>
+              Evidence-Linked Settlement Engine
+            </h1>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
+              Physical mass verification automatically triggers smart contract escrow payouts. Funds remain cryptographically locked until forensic multi-agent attestation completes.
+            </p>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-white">Settlement & Escrow Desk</h2>
-          <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            Conditional payout automation anchored to physical recovery attestation. Supports PENDING, HELD, RELEASED, and REFUNDED states.
-          </p>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button
+              onClick={loadData}
+              className="btn-ghost"
+              title="Refresh ledger"
+            >
+              <RotateCcw size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Settlement Cards */}
-      <div className="space-y-4">
-        {batches.map((batch) => {
-          const settlement = batch.settlement || {
-            amountINR: 50000,
-            status: 'PENDING',
-            recipient: batch.recycler
-          };
+      {/* Escrow TVL Metrics Row */}
+      <div
+        className="animate-reveal-up stagger-1"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 16,
+        }}
+      >
+        {[
+          { label: 'Total Value Committed', val: totalEscrow, color: 'var(--teal)', sub: `${batches.length} Batches Contracted` },
+          { label: 'Released Payouts', val: releasedEscrow, color: 'var(--success)', sub: 'Verified Impact Settled' },
+          { label: 'Locked in Escrow', val: heldEscrow, color: 'var(--orange)', sub: 'Under Multi-Agent Audit' },
+          { label: 'Challenged / Frozen', val: disputedEscrow, color: 'var(--error)', sub: 'Bounty Bond Staked' },
+        ].map((m, i) => (
+          <div
+            key={i}
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              padding: '18px 20px',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <div className="label-caps-sm" style={{ marginBottom: 6 }}>{m.label}</div>
+            <div className="font-mono font-bold" style={{ fontSize: 22, color: m.color, letterSpacing: '-0.03em' }}>
+              ₹{m.val.toLocaleString()}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+              {m.sub}
+            </div>
+          </div>
+        ))}
+      </div>
 
-          const isHeld = settlement.status === 'HELD';
-          const isReleased = settlement.status === 'RELEASED';
-          const isPending = settlement.status === 'PENDING';
-          const isRefunded = settlement.status === 'REFUNDED';
-
-          return (
-            <div 
-              key={batch.id}
-              className={`p-6 rounded-2xl border transition-all ${
-                isReleased 
-                  ? 'bg-slate-900/90 border-emerald-500/30' 
-                  : isHeld 
-                  ? 'bg-slate-900/90 border-amber-500/40' 
-                  : 'bg-slate-900/80 border-slate-800'
-              }`}
+      {/* Settlement Protocol Lifecycle */}
+      <div
+        className="animate-reveal-up stagger-2"
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          padding: '20px 24px',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <div className="label-caps" style={{ marginBottom: 12 }}>
+          Evidence Settlement Sequence
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+          {[
+            { step: '01. DEPOSITED', desc: 'Buyer deposits INR to escrow contract on batch creation', color: 'var(--gold)' },
+            { step: '02. AUDITED', desc: 'AI reconciliation and physical mass balance pass audit', color: 'var(--orange)' },
+            { step: '03. VERIFIED', desc: 'Human verifier & off-taker sign off on recovery receipt', color: 'var(--teal)' },
+            { step: '04. RELEASED', desc: 'Cryptographic release to recycler wallet occurs instantly', color: 'var(--success)' },
+          ].map((st, i) => (
+            <div
+              key={i}
+              style={{
+                padding: '12px 14px',
+                background: 'var(--bg)',
+                borderRadius: 4,
+                border: '1px solid var(--border-light)',
+              }}
             >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4 mb-4">
-                <div>
-                  <div className="flex items-center gap-2.5 mb-1">
-                    <span className="font-mono text-sm font-bold text-white">{batch.id}</span>
-                    <span className="text-xs text-slate-400">({batch.material})</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-400 font-mono">
-                    <span>Beneficiary: {settlement.recipient}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <span className="text-xs uppercase font-mono text-slate-400 block">Settlement</span>
-                    <span className="text-2xl font-black text-white font-sans">
-                      ₹{settlement.amountINR?.toLocaleString()}
-                    </span>
-                  </div>
-                  <StatusBadge status={settlement.status} size="lg" />
-                </div>
+              <div className="font-mono font-bold" style={{ fontSize: 11, color: st.color, marginBottom: 4 }}>
+                {st.step}
               </div>
-
-              {/* Transactions details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono mb-4 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
-                <div>
-                  <span className="text-slate-400 block mb-0.5">Escrow Deposit Tx:</span>
-                  <TxHashLink hash={settlement.escrowTx} />
-                </div>
-                <div>
-                  <span className="text-slate-400 block mb-0.5">Settlement Release Tx:</span>
-                  <TxHashLink hash={settlement.releaseTx} />
-                </div>
-              </div>
-
-              {/* Action Buttons connected to P1 chain hooks */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                <span className="text-xs text-slate-400">
-                  {isReleased && '✓ Escrow released to recycler after verified physical recovery.'}
-                  {isHeld && '⚠ Escrow frozen pending auditor dispute resolution.'}
-                  {isPending && '• Awaiting AI & downstream receipt confirmation.'}
-                  {isRefunded && '↺ Funds refunded to waste producer.'}
-                </span>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    disabled={processingId === batch.id || isHeld}
-                    onClick={() => handleUpdateStatus(batch.id, 'HELD')}
-                    className="px-3.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40"
-                  >
-                    <Lock size={13} />
-                    <span>HOLD</span>
-                  </button>
-
-                  <button
-                    disabled={processingId === batch.id || isReleased}
-                    onClick={() => handleUpdateStatus(batch.id, 'RELEASED')}
-                    className="px-3.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40"
-                  >
-                    <Unlock size={13} />
-                    <span>RELEASE</span>
-                  </button>
-
-                  <button
-                    disabled={processingId === batch.id || isRefunded}
-                    onClick={() => handleUpdateStatus(batch.id, 'REFUNDED')}
-                    className="px-3.5 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40"
-                  >
-                    <RotateCcw size={13} />
-                    <span>REFUND</span>
-                  </button>
-                </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                {st.desc}
               </div>
             </div>
-          );
-        })}
+          ))}
+        </div>
+      </div>
+
+      {/* Batches Settlement Table */}
+      <div
+        className="animate-reveal-up stagger-3"
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          overflow: 'hidden',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <div
+          style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--border)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <div>
+            <div className="label-caps" style={{ marginBottom: 2 }}>Settlement Escrow Registry</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Deterministic smart contract balances & transaction triggers
+            </div>
+          </div>
+          <span className="font-mono" style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+            Contract: 0x429b...11c4
+          </span>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: 'var(--bg)' }}>
+                {['Batch ID', 'Facility & Material', 'Claimed Mass', 'Escrow INR', 'Settlement Status', 'Actions'].map(h => (
+                  <th
+                    key={h}
+                    className="label-caps-sm"
+                    style={{
+                      padding: '10px 16px',
+                      textAlign: 'left',
+                      borderBottom: '1px solid var(--border)',
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {batches.map((batch) => {
+                const statusMeta = getStatusColor(batch.settlement?.status || 'PENDING');
+                const isProcessing = processingId === batch.id;
+                const isReleased = batch.settlement?.status === 'RELEASED';
+                const isHeld = batch.settlement?.status === 'HELD';
+
+                return (
+                  <tr
+                    key={batch.id}
+                    style={{
+                      borderBottom: '1px solid var(--border-light)',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ padding: '12px 16px' }}>
+                      <div className="font-mono font-bold" style={{ fontSize: 12, color: 'var(--teal)' }}>
+                        {batch.id}
+                      </div>
+                      <div className="font-mono" style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+                        {batch.scenario}
+                      </div>
+                    </td>
+
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+                        {batch.recycler}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        {batch.material}
+                      </div>
+                    </td>
+
+                    <td style={{ padding: '12px 16px' }}>
+                      <div className="font-mono" style={{ fontSize: 12, color: 'var(--text)' }}>
+                        {batch.claimedRecoveredWeight || 680} kg
+                      </div>
+                      <div className="font-mono" style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+                        of {batch.inputWeight} kg intake
+                      </div>
+                    </td>
+
+                    <td style={{ padding: '12px 16px' }}>
+                      <div className="font-mono font-bold" style={{ fontSize: 13, color: 'var(--text)' }}>
+                        ₹{(batch.settlement?.amountINR || 50000).toLocaleString()}
+                      </div>
+                    </td>
+
+                    <td style={{ padding: '12px 16px' }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '3px 8px',
+                          borderRadius: 2,
+                          fontSize: 10,
+                          fontFamily: 'JetBrains Mono, monospace',
+                          fontWeight: 700,
+                          background: statusMeta.bg,
+                          color: statusMeta.text,
+                          border: `1px solid ${statusMeta.border}50`,
+                        }}
+                      >
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: statusMeta.text }} />
+                        {batch.settlement?.status || 'PENDING'}
+                      </span>
+                    </td>
+
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        {!isReleased && (
+                          <button
+                            onClick={() => handleUpdateStatus(batch.id, 'RELEASED')}
+                            disabled={isProcessing}
+                            className="btn-primary"
+                            style={{ padding: '5px 10px', fontSize: 11 }}
+                            title="Release escrow payout to recycler"
+                          >
+                            <Unlock size={11} />
+                            <span>{isProcessing ? 'Releasing…' : 'Release'}</span>
+                          </button>
+                        )}
+
+                        {!isHeld && (
+                          <button
+                            onClick={() => handleUpdateStatus(batch.id, 'HELD')}
+                            disabled={isProcessing}
+                            className="btn-secondary"
+                            style={{ padding: '5px 10px', fontSize: 11 }}
+                            title="Freeze escrow funds for investigation"
+                          >
+                            <Lock size={11} />
+                            <span>Freeze</span>
+                          </button>
+                        )}
+
+                        {batch.settlement?.status !== 'REFUNDED' && (
+                          <button
+                            onClick={() => handleUpdateStatus(batch.id, 'REFUNDED')}
+                            disabled={isProcessing}
+                            className="btn-ghost"
+                            style={{ padding: '5px 8px', fontSize: 11, color: 'var(--earth)' }}
+                            title="Refund to producer buyer"
+                          >
+                            Refund
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

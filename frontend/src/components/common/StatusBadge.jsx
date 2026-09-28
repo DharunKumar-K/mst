@@ -1,34 +1,67 @@
 import React from 'react';
 
-const colors = {
-  VERIFIED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  FLAGGED: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
-  CHALLENGED: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  PENDING: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-  HELD: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-  RELEASED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  REFUNDED: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-  VALID: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  CONSISTENT: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  TAMPERED: 'bg-red-500/10 text-red-400 border-red-500/30',
-  SUSPICIOUS: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  MISMATCH: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
-  WARNING: 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+const statusConfig = {
+  VERIFIED:    { color: 'var(--success)', bg: 'var(--success-light)', border: 'var(--success)' },
+  RELEASED:    { color: 'var(--success)', bg: 'var(--success-light)', border: 'var(--success)' },
+  VALID:       { color: 'var(--success)', bg: 'var(--success-light)', border: 'var(--success)' },
+  CONSISTENT:  { color: 'var(--success)', bg: 'var(--success-light)', border: 'var(--success)' },
+  SETTLED:     { color: 'var(--success)', bg: 'var(--success-light)', border: 'var(--success)' },
+
+  PROCESSING:  { color: 'var(--orange)', bg: 'var(--orange-light)', border: 'var(--orange)' },
+  HELD:        { color: 'var(--orange)', bg: 'var(--orange-light)', border: 'var(--orange)' },
+
+  PENDING:     { color: 'var(--gold)', bg: 'var(--gold-light)', border: 'var(--gold)' },
+  SUBMITTED:   { color: 'var(--gold)', bg: 'var(--gold-light)', border: 'var(--gold)' },
+
+  FLAGGED:     { color: 'var(--error)', bg: 'var(--error-light)', border: 'var(--error)' },
+  CHALLENGED:  { color: 'var(--error)', bg: 'var(--error-light)', border: 'var(--error)' },
+  TAMPERED:    { color: 'var(--error)', bg: 'var(--error-light)', border: 'var(--error)' },
+  MISMATCH:    { color: 'var(--error)', bg: 'var(--error-light)', border: 'var(--error)' },
+
+  WARNING:     { color: 'var(--warning)', bg: 'var(--warning-light)', border: 'var(--warning)' },
+  SUSPICIOUS:  { color: 'var(--warning)', bg: 'var(--warning-light)', border: 'var(--warning)' },
+
+  REFUNDED:    { color: 'var(--earth)', bg: 'var(--earth-light)', border: 'var(--earth)' },
 };
 
 export default function StatusBadge({ status, size = 'md' }) {
   const normalized = (status || '').toUpperCase();
-  const colorClass = colors[normalized] || 'bg-slate-800 text-slate-300 border-slate-700';
+  const cfg = statusConfig[normalized] || {
+    color: 'var(--text-muted)',
+    bg: 'var(--bg)',
+    border: 'var(--border)'
+  };
 
-  const sizeClass = size === 'sm' 
-    ? 'text-xs px-2 py-0.5' 
-    : size === 'lg' 
-    ? 'text-sm px-3.5 py-1.5 font-bold' 
-    : 'text-xs px-2.5 py-1 font-semibold';
+  const isSmall = size === 'sm';
+  const isLarge = size === 'lg';
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border tracking-wide uppercase shadow-sm ${colorClass} ${sizeClass}`}>
-      <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        borderRadius: 3,
+        border: `1px solid ${cfg.border}50`,
+        background: cfg.bg,
+        color: cfg.color,
+        fontSize: isSmall ? 9 : isLarge ? 12 : 10,
+        fontWeight: 700,
+        fontFamily: 'JetBrains Mono, monospace',
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        padding: isSmall ? '2px 6px' : isLarge ? '4px 10px' : '3px 8px',
+        lineHeight: 1.2,
+      }}
+    >
+      <span
+        style={{
+          width: isSmall ? 4 : 5,
+          height: isSmall ? 4 : 5,
+          borderRadius: '50%',
+          background: cfg.color,
+        }}
+      />
       {status}
     </span>
   );
