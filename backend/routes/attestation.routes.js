@@ -1,0 +1,25 @@
+const express = require('express');
+const router = express.Router();
+const Attestation = require('../models/Attestation');
+
+router.post('/', async (req, res) => {
+  try {
+    const { batchId, attestor, txHash } = req.body;
+    const attestation = new Attestation({ batchId, attestor, txHash, status: 'PENDING' });
+    await attestation.save();
+    res.status(201).json({ success: true, attestation });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/:batchId', async (req, res) => {
+  try {
+    const attestations = await Attestation.find({ batchId: req.params.batchId });
+    res.json({ success: true, attestations });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+module.exports = router;
