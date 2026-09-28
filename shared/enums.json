@@ -1,0 +1,39 @@
+{
+  "batchStatus": [
+    "CREATED",
+    "EVIDENCE_COMMITTED",
+    "AI_ANALYZED",
+    "ATTESTED",
+    "VERIFIED",
+    "CHALLENGED",
+    "UNDER_REVIEW",
+    "RESOLVED",
+    "SETTLED"
+  ],
+  "aiResult": ["CONSISTENT", "FLAGGED", "REVIEW"],
+  "flagCodes": [
+    "MASS_BALANCE_MISMATCH",
+    "CLAIM_NOT_SUPPORTED_BY_DOWNSTREAM",
+    "CAPACITY_EXCEEDED",
+    "CLAIM_DIFFERS_FROM_COMMITTED_EVIDENCE",
+    "EVIDENCE_HASH_MISMATCH",
+    "MISSING_EVIDENCE",
+    "UNIT_MISMATCH",
+    "INVALID_WEIGHT",
+    "INVALID_TIMESTAMP_ORDER"
+  ],
+  "scenario": ["NORMAL", "INCONSISTENT", "TAMPERED"],
+  "challengeStatus": ["NONE", "CHALLENGED", "UNDER_REVIEW", "RESOLVED"],
+  "settlementStatus": ["PENDING", "VERIFIED", "HELD", "RELEASED", "REFUNDED"],
+  "roles": ["PRODUCER", "RECYCLER", "AUDITOR", "BUYER", "ADMIN"],
+  "evidenceTypes": [
+    "weighbridge",
+    "intake_invoice",
+    "processing_log",
+    "output_record",
+    "downstream_invoice",
+    "capacity",
+    "telemetry"
+  ],
+  "evidenceOrigin": ["upload", "simulation"]
+}
