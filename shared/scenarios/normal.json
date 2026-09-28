@@ -2,7 +2,7 @@
   "scenario": "NORMAL",
   "inputWeight": 1000,
   "processedWeight": 950,
-  "claimedRecoveredWeight": 680,
+  "claimedRecoveredWeight": 675,
   "recoveredEvidenceWeight": 680,
   "downstreamWeight": 675,
   "expectedStatus": "CONSISTENT",
@@ -11,7 +11,7 @@
     "producer": "Dell",
     "recycler": "Recycler-A",
     "material": "recycled polymer",
-    "claim": { "quantity": 680, "unit": "kg" }
+    "claim": { "quantity": 675, "unit": "kg" }
   },
   "evidence": [
     { "eventId": "normal-weighbridge", "type": "weighbridge", "source": "Recycler-A", "data": { "weight": 1000, "unit": "kg" } },
