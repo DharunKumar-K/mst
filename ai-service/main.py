@@ -86,6 +86,12 @@ class ReconcileResponse(BaseModel):
     recommendation: str = ""
 
 
+class DocumentExtractRequest(BaseModel):
+    file_name: str
+    file_type: str  # "application/pdf", "application/json", etc.
+    content_base64: str
+
+
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 
@@ -119,6 +125,28 @@ async def check_rules(request: ReconcileRequest):
         return {"ok": True, "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/document-extract")
+async def document_extract(request: DocumentExtractRequest):
+    """
+    Extract structured data from documents (JSON, CSV, PDF).
+    Currently a placeholder that echoes back the file info.
+    """
+    import base64
+    try:
+        content = base64.b64decode(request.content_base64)
+        return {
+            "ok": True, 
+            "data": {
+                "file_name": request.file_name,
+                "file_type": request.file_type,
+                "size_bytes": len(content),
+                "extracted": {} # To be populated by extraction logic
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid base64 content: {e}")
 
 
 if __name__ == "__main__":

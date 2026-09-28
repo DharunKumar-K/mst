@@ -162,7 +162,12 @@ def rule_downstream_match(extracted: dict) -> dict:
 
 
 def rule_claim_vs_evidence(extracted: dict) -> dict:
-    """Claimed quantity must match processing output evidence."""
+    """Claimed quantity must not exceed processing output evidence.
+    
+    A recycler may legitimately claim LESS than their processing output
+    (e.g. some recovered material stays in inventory or is scrapped).
+    Only flag if claim > committed output, which would be physically impossible.
+    """
     claim_q = extracted["claim_quantity"]
     output_w = extracted["output_weight"]
 
@@ -176,7 +181,7 @@ def rule_claim_vs_evidence(extracted: dict) -> dict:
             "flag": None,
         }
 
-    passed = claim_q == output_w
+    passed = claim_q <= output_w
     return {
         "rule": "CLAIM_VS_EVIDENCE",
         "passed": passed,
