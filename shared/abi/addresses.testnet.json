@@ -1,0 +1,6 @@
+{
+  "network": "mst_testnet",
+  "chainId": "91562037",
+  "CirqProofRegistry": "0xFE9236E0A273c00C901D70A9C7D347f2A5d56633",
+  "CirqProofSettlement": "0xade8B1Caa033Cf637fC52c5746798D58cAdcb372"
+}

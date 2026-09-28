@@ -1,5 +1,50 @@
-# Chain and attestation integration
+# Chain and Attestation Integration
 
-The first release is simulation-only: there is no blockchain transaction or on-chain write. Batch documents reserve `chainRefs` with `txHash` and `attestationId` fields; the batch service exposes `setChainRefs(batchId, { txHash, attestationId })` for an eventual adapter.
+This document defines the frozen blockchain interface for the CirqProof project.
 
-The automatic route loader will mount a future `attestation.routes.js` at `/api/attestation`. Before enabling it, define its operations, errors, and transaction/attestation response contract here. Until then `chainRefs` remain empty and are not proof of on-chain verification.
+## CirqProofRegistry Interface
+
+### States
+The on-chain state machine for a batch includes:
+- `CREATED`
+- `EVIDENCE_COMMITTED`
+- `AI_ANALYZED`
+- `ATTESTED`
+- `VERIFIED`
+- `CHALLENGED`
+- `UNDER_REVIEW`
+- `RESOLVED`
+- `SETTLED`
+
+### Functions
+- `registerParticipant(address participant)`
+- `createBatch(string batchId)`
+- `commitEvidence(string batchId, string evidenceHash)`
+- `recordAiResult(string batchId, string resultHash)`
+- `submitAttestation(string batchId)`
+- `verifyAttestation(string batchId)`
+- `challengeAttestation(string batchId)`
+- `resolveChallenge(string batchId, bool isVerified)`
+
+### Events
+- `BatchCreated(string batchId, address creator)`
+- `EvidenceCommitted(string batchId, string evidenceHash)`
+- `AiResultRecorded(string batchId, string resultHash)`
+- `AttestationSubmitted(string batchId, address attestor)`
+- `AttestationVerified(string batchId)`
+- `AttestationChallenged(string batchId, address challenger)`
+- `ChallengeResolved(string batchId, bool isVerified)`
+
+## CirqProofSettlement Interface
+
+### Functions
+- `deposit(string batchId) payable`
+- `release(string batchId)`
+- `hold(string batchId)`
+- `refund(string batchId)`
+
+### Events
+- `Deposited(string batchId, address depositor, uint256 amount)`
+- `Released(string batchId, address recipient, uint256 amount)`
+- `Held(string batchId)`
+- `Refunded(string batchId, address recipient, uint256 amount)`
