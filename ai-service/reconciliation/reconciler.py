@@ -62,6 +62,14 @@ TEMPLATE_EXPLANATIONS = {
         "Evidence inconsistency detected: unit mismatch found across evidence. "
         "Claim unit is '{claim_unit}' but evidence contains: {evidence_units}."
     ),
+    "INVALID_WEIGHT": (
+        "Evidence inconsistency detected: one or more weight values are negative. "
+        "Negative fields: {negative_fields}."
+    ),
+    "INVALID_TIMESTAMP_ORDER": (
+        "Evidence inconsistency detected: timestamps are not in logical chronological order. "
+        "Out of order: {out_of_order}."
+    ),
 }
 
 RECOMMENDATION_TEMPLATES = {
@@ -100,6 +108,8 @@ def build_template_explanation(rule_results: dict) -> str:
                 mismatched=", ".join(rule_data.get("mismatchedEvidenceIds", [])),
                 claim_unit=rule_data.get("claim_unit", "kg"),
                 evidence_units=", ".join(rule_data.get("evidence_units", [])),
+                negative_fields=", ".join(rule_data.get("negative_fields", [])),
+                out_of_order=", ".join(rule_data.get("out_of_order", [])),
             )
             explanations.append(explanation)
         except (KeyError, IndexError):

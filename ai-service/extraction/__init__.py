@@ -41,9 +41,11 @@ def extract_all(batch: dict, evidence: list[dict]) -> dict:
       - claim_quantity, claim_unit
       - input_weight (from weighbridge)
       - output_weight (from processing_log)
+      - recovered_weight (from output_record)
       - downstream_quantity (from downstream_invoice)
       - capacity (from capacity evidence)
       - evidence types present/missing
+      - timestamps (dict of evidence type to timestamp)
     """
     by_type = group_evidence_by_type(evidence)
 
@@ -76,12 +78,27 @@ def extract_all(batch: dict, evidence: list[dict]) -> dict:
         ["quantity", "weight"],
     )
 
+    # Output record → recovered weight
+    output_rec = by_type.get("output_record", [{}])[0] if "output_record" in by_type else {}
+    recovered_weight = extract_quantity(
+        output_rec.get("data", {}),
+        ["totalRecovered", "recoveredWeight", "quantity", "weight"],
+    )
+
     # Capacity
     capacity_ev = by_type.get("capacity", [{}])[0] if "capacity" in by_type else {}
     capacity = extract_quantity(
         capacity_ev.get("data", {}),
         ["capacity", "quantity", "weight"],
     )
+
+    # Timestamps
+    timestamps = {}
+    for item in evidence:
+        ev_type = item.get("type")
+        ts = item.get("timestamp")
+        if ev_type and ts:
+            timestamps[ev_type] = ts
 
     # Units from evidence
     evidence_units = set()
@@ -100,9 +117,11 @@ def extract_all(batch: dict, evidence: list[dict]) -> dict:
         "input_weight": input_weight,
         "output_weight": output_weight,
         "processing_input": processing_input,
+        "recovered_weight": recovered_weight,
         "downstream_quantity": downstream_quantity,
         "capacity": capacity,
         "evidence_units": evidence_units,
         "missing_evidence": missing_evidence,
         "evidence_types_present": list(by_type.keys()),
+        "timestamps": timestamps,
     }

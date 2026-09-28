@@ -34,28 +34,72 @@ def rule_unit_normalization(extracted: dict) -> dict:
 
 
 def rule_mass_balance(extracted: dict) -> dict:
-    """Output weight must not exceed input weight."""
+    """Processed weight must not exceed input weight."""
     input_w = extracted["input_weight"]
-    output_w = extracted["output_weight"]
+    processed_w = extracted["output_weight"]
 
-    if input_w is None or output_w is None:
+    if input_w is None or processed_w is None:
         return {
             "rule": "MASS_BALANCE",
             "passed": True,  # cannot check without data
             "input": input_w,
-            "output": output_w,
+            "processed": processed_w,
             "note": "Insufficient data to check mass balance",
             "flag": None,
         }
 
-    passed = output_w <= input_w
+    passed = processed_w <= input_w
     return {
         "rule": "MASS_BALANCE",
         "passed": passed,
         "input": input_w,
-        "output": output_w,
-        "difference": round(output_w - input_w, 2) if not passed else 0,
+        "processed": processed_w,
+        "difference": round(processed_w - input_w, 2) if not passed else 0,
         "flag": "MASS_BALANCE_MISMATCH" if not passed else None,
+    }
+
+
+def rule_recovery_le_processing(extracted: dict) -> dict:
+    """Recovered weight must not exceed processed weight."""
+    processed_w = extracted["output_weight"]
+    recovered_w = extracted["recovered_weight"]
+
+    if processed_w is None or recovered_w is None:
+        return {
+            "rule": "RECOVERY_LE_PROCESSING",
+            "passed": True,
+            "note": "Insufficient data to check recovery vs processing",
+            "flag": None,
+        }
+
+    passed = recovered_w <= processed_w
+    return {
+        "rule": "RECOVERY_LE_PROCESSING",
+        "passed": passed,
+        "processed": processed_w,
+        "recovered": recovered_w,
+        "flag": "MASS_BALANCE_MISMATCH" if not passed else None,
+    }
+
+
+def rule_non_negative_weights(extracted: dict) -> dict:
+    """All weights must be non-negative."""
+    weights = {
+        "input": extracted["input_weight"],
+        "processed": extracted["output_weight"],
+        "recovered": extracted["recovered_weight"],
+        "downstream": extracted["downstream_quantity"],
+        "capacity": extracted["capacity"],
+        "claim": extracted["claim_quantity"],
+    }
+    
+    negatives = [k for k, v in weights.items() if v is not None and v < 0]
+    
+    return {
+        "rule": "NON_NEGATIVE_WEIGHTS",
+        "passed": len(negatives) == 0,
+        "negative_fields": negatives,
+        "flag": "INVALID_WEIGHT" if negatives else None,
     }
 
 
@@ -86,9 +130,10 @@ def rule_capacity_check(extracted: dict) -> dict:
 
 
 def rule_downstream_match(extracted: dict) -> dict:
-    """Claimed quantity must not exceed downstream-supported quantity."""
+    """Downstream quantity must not exceed recovered quantity, and claim <= downstream."""
     claim_q = extracted["claim_quantity"]
     downstream_q = extracted["downstream_quantity"]
+    recovered_q = extracted["recovered_weight"]
 
     if downstream_q is None:
         return {
@@ -100,13 +145,18 @@ def rule_downstream_match(extracted: dict) -> dict:
             "flag": None,
         }
 
-    passed = claim_q <= downstream_q
+    passed_claim = claim_q <= downstream_q
+    passed_recovery = recovered_q is None or downstream_q <= recovered_q
+    
+    passed = passed_claim and passed_recovery
+    
     return {
         "rule": "DOWNSTREAM_MATCH",
         "passed": passed,
         "claim": claim_q,
         "downstream": downstream_q,
-        "matchesClaim": passed,
+        "recovered": recovered_q,
+        "matchesClaim": passed_claim,
         "flag": "CLAIM_NOT_SUPPORTED_BY_DOWNSTREAM" if not passed else None,
     }
 
@@ -201,6 +251,29 @@ def rule_missing_evidence(extracted: dict) -> dict:
     }
 
 
+def rule_logical_timestamps(extracted: dict) -> dict:
+    """Timestamps must be logically ordered: weighbridge <= processing_log <= output_record <= downstream_invoice."""
+    ts = extracted["timestamps"]
+    order = ["weighbridge", "processing_log", "output_record", "downstream_invoice"]
+    
+    available = [t for t in order if t in ts]
+    out_of_order = []
+    
+    for i in range(len(available) - 1):
+        t1 = ts[available[i]]
+        t2 = ts[available[i+1]]
+        if t1 > t2:
+            out_of_order.append(f"{available[i]} > {available[i+1]}")
+            
+    passed = len(out_of_order) == 0
+    return {
+        "rule": "LOGICAL_TIMESTAMPS",
+        "passed": passed,
+        "out_of_order": out_of_order,
+        "flag": "INVALID_TIMESTAMP_ORDER" if not passed else None,
+    }
+
+
 def run_rules(
     batch: dict,
     evidence: list[dict],
@@ -225,7 +298,10 @@ def run_rules(
     # Run each rule
     results = [
         rule_unit_normalization(extracted),
+        rule_non_negative_weights(extracted),
+        rule_logical_timestamps(extracted),
         rule_mass_balance(extracted),
+        rule_recovery_le_processing(extracted),
         rule_capacity_check(extracted),
         rule_downstream_match(extracted),
         rule_claim_vs_evidence(extracted),
@@ -266,7 +342,7 @@ def run_rules(
         "missingEvidence": missing,
         "massBalanceResult": {
             "input": mb.get("input"),
-            "output": mb.get("output"),
+            "output": mb.get("processed"),
             "claim": extracted["claim_quantity"],
         },
         "capacityResult": {
