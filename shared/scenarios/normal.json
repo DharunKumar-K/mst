@@ -1,0 +1,16 @@
+{
+  "scenario": "NORMAL",
+  "batch": {
+    "batchId": "CP-2026-001",
+    "producer": "Dell",
+    "recycler": "Recycler-A",
+    "material": "recycled polymer",
+    "claim": { "quantity": 900, "unit": "kg" }
+  },
+  "evidence": [
+    { "eventId": "normal-weighbridge", "type": "weighbridge", "source": "Recycler-A", "data": { "weight": 1000, "unit": "kg" } },
+    { "eventId": "normal-processing", "type": "processing_log", "source": "Recycler-A", "data": { "inputWeight": 1000, "outputWeight": 900, "unit": "kg" } },
+    { "eventId": "normal-downstream", "type": "downstream_invoice", "source": "Buyer", "data": { "quantity": 900, "unit": "kg" } },
+    { "eventId": "normal-capacity", "type": "capacity", "source": "Recycler-A", "data": { "capacity": 1200, "unit": "kg" } }
+  ]
+}

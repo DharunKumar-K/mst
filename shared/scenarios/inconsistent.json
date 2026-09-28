@@ -1,0 +1,16 @@
+{
+  "scenario": "INCONSISTENT",
+  "batch": {
+    "batchId": "CP-2026-002",
+    "producer": "Dell",
+    "recycler": "Recycler-A",
+    "material": "recycled polymer",
+    "claim": { "quantity": 900, "unit": "kg" }
+  },
+  "evidence": [
+    { "eventId": "inconsistent-weighbridge", "type": "weighbridge", "source": "Recycler-A", "data": { "weight": 700, "unit": "kg" } },
+    { "eventId": "inconsistent-processing", "type": "processing_log", "source": "Recycler-A", "data": { "inputWeight": 700, "outputWeight": 650, "unit": "kg" } },
+    { "eventId": "inconsistent-downstream", "type": "downstream_invoice", "source": "Buyer", "data": { "quantity": 600, "unit": "kg" } },
+    { "eventId": "inconsistent-capacity", "type": "capacity", "source": "Recycler-A", "data": { "capacity": 500, "unit": "kg" } }
+  ]
+}

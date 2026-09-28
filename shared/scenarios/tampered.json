@@ -1,0 +1,14 @@
+{
+  "scenario": "TAMPERED",
+  "batch": {
+    "batchId": "CP-2026-003",
+    "producer": "Dell",
+    "recycler": "Recycler-A",
+    "material": "recycled polymer",
+    "claim": { "quantity": 900, "unit": "kg" }
+  },
+  "evidence": [
+    { "eventId": "tampered-weighbridge", "type": "weighbridge", "source": "Recycler-A", "data": { "weight": 1000, "unit": "kg" } }
+  ],
+  "demoAction": "After ingestion, call overwriteEvidenceForSimulation on the stored evidence id; verifyIntegrity must report allHashesMatch=false."
+}
