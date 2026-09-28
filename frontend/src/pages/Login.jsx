@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, ROLES } from '../hooks/useAuth';
+import api from '../services/api';
 import { ArrowRight, ArrowDown, ChevronRight } from 'lucide-react';
+
 
 /* ─────────────────────────────────────────────────
    Material Flow Diagram — left panel hero visual
